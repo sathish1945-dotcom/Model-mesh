@@ -58,6 +58,12 @@ app.use(cookieParser());
 app.use(apiRateLimit);
 
 // --- Public Config Endpoint (NO SECRETS) ---
+app.get('/api/health', asyncRoute(async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  await db.checkHealth();
+  res.json({ status: 'ok' });
+}));
+
 app.get('/api/config', asyncRoute(async (req, res) => {
   res.json({
     appName: 'ModelMesh',
@@ -307,4 +313,3 @@ if (!process.env.VERCEL && process.argv[1] && path.resolve(process.argv[1]) === 
     process.exitCode = 1;
   });
 }
-

@@ -11,6 +11,11 @@ import type { Chat, ChatMessage } from '../types/index.ts';
 export class PostgresDatabase {
   private pool?: pg.Pool;
 
+  async checkHealth() {
+    await this.rows(`SELECT 1 FROM modelmesh_users, modelmesh_chats, modelmesh_messages,
+      modelmesh_provider_connections, modelmesh_oauth_states LIMIT 0`);
+  }
+
   private getPool() {
     if (this.pool) return this.pool;
     const value = getDatabaseUrl();

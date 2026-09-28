@@ -35,6 +35,8 @@ interface DatabaseSchema {
 const DB_FALLBACK_FILE = path.resolve(process.cwd(), 'data/modelmesh_db.json');
 
 class LocalDatabase {
+  async checkHealth() { return; }
+
   private data: DatabaseSchema = {
     users: [],
     provider_connections: [],
@@ -281,4 +283,3 @@ class LocalDatabase {
 export const db = process.env.NODE_ENV === 'production' || getDatabaseUrl()
   ? new PostgresDatabase()
   : new LocalDatabase();
-
