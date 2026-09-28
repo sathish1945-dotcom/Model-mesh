@@ -1,0 +1,6 @@
+{
+  "name": "ModelMesh",
+  "description": "Intelligent AI prompt router that automatically classifies tasks and streams responses using free OpenRouter models.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
