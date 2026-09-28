@@ -56,7 +56,7 @@ export async function handleOpenRouterConnect(req: Request, res: Response) {
     const codeChallenge = generateCodeChallenge(codeVerifier);
 
     // Persist state + code_verifier securely on the backend linked to the user
-    db.saveOAuthState(state, codeVerifier, user.id);
+    await db.saveOAuthState(state, codeVerifier, user.id);
 
     const appUrl = getAppUrl(req);
     const callbackUrl = `${appUrl}/api/openrouter/callback`;
@@ -161,7 +161,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
 
   if (error || error_description) {
     console.warn('[OpenRouter OAuth] Error from callback:', error, error_description);
-    return renderResponse(false, String(error_description || error || 'Authorization was cancelled.'));
+    return renderResponse(false, 'Authorization was cancelled or rejected by the provider.');
   }
 
   if (!code || typeof code !== 'string' || !state || typeof state !== 'string') {
@@ -169,7 +169,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
   }
 
   // Verify and consume state
-  const oauthState = db.consumeOAuthState(state);
+  const oauthState = await db.consumeOAuthState(state);
   if (!oauthState) {
     return renderResponse(false, 'Authorization session expired or was invalid. Please try connecting again.');
   }
@@ -207,7 +207,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
     const encryptedKey = encryptCredential(data.key);
 
     // Store the encrypted key in the database linked only to that user
-    db.saveProviderConnection(oauthState.user_id, 'openrouter', encryptedKey, 'connected');
+    await db.saveProviderConnection(oauthState.user_id, 'openrouter', encryptedKey, 'connected');
 
     return renderResponse(
       true,
@@ -229,7 +229,7 @@ export async function handleOpenRouterStatus(req: Request, res: Response) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const conn = db.getProviderConnection(user.id, 'openrouter');
+  const conn = await db.getProviderConnection(user.id, 'openrouter');
   return res.json({
     connected: !!conn && conn.connection_status === 'connected',
     provider: 'openrouter',
@@ -248,10 +248,11 @@ export async function handleOpenRouterDisconnect(req: Request, res: Response) {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  const success = db.disconnectProvider(user.id, 'openrouter');
+  const success = await db.disconnectProvider(user.id, 'openrouter');
   return res.json({
     success,
     connected: false,
     message: 'OpenRouter account disconnected.',
   });
 }
+

@@ -1,4 +1,5 @@
-import express from 'express';
+import express, { type RequestHandler, type ErrorRequestHandler } from 'express';
+import { verifyGoogleIdentity } from './src/server/google-auth.ts';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -28,21 +29,28 @@ import { handleChatStream } from './src/server/chat-service.ts';
 import { chatRateLimit, apiRateLimit } from './src/server/rate-limit.ts';
 import { validateAndGetEncryptionKey } from './src/server/encryption.ts';
 
-// Validate required APP_ENCRYPTION_KEY (Base64-encoded 32-byte key) on server startup
-try {
-  validateAndGetEncryptionKey();
-  console.log('[Security] APP_ENCRYPTION_KEY validated: Base64-encoded 32-byte AES-GCM key confirmed.');
-} catch (err: any) {
-  console.error('[Security Startup Error]', err.message);
-  process.exit(1);
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
 const isProduction = process.env.NODE_ENV === 'production';
+
+const asyncRoute = (handler: RequestHandler): RequestHandler => (req, res, next) => {
+  Promise.resolve(handler(req, res, next)).catch(next);
+};
+
+// Configuration checks happen inside requests so errors remain JSON.
+app.use('/api', (_req, res, next) => {
+  try {
+    validateAndGetEncryptionKey();
+    if (isProduction && !process.env.AUTH_SECRET) throw new Error('AUTH_SECRET is required');
+    next();
+  } catch (error) {
+    console.error('[API] Required server configuration is invalid');
+    res.status(503).json({ error: 'Server configuration is incomplete. Please contact support.' });
+  }
+});
 
 // Basic middleware
 app.use(express.json({ limit: '1mb' }));
@@ -50,22 +58,22 @@ app.use(cookieParser());
 app.use(apiRateLimit);
 
 // --- Public Config Endpoint (NO SECRETS) ---
-app.get('/api/config', (req, res) => {
+app.get('/api/config', asyncRoute(async (req, res) => {
   res.json({
     appName: 'ModelMesh',
     appUrl: getAppUrl(req),
     hasGoogleClientId: Boolean(process.env.GOOGLE_CLIENT_ID),
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
   });
-});
+}));
 
 // --- Authentication Endpoints ---
 
 // Register with email/password
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', asyncRoute(async (req, res) => {
   try {
-    const { email, password, name } = req.body;
-    if (!email || !password) {
+    const { email, password, name } = req.body || {};
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
     if (typeof email !== 'string' || !email.includes('@')) {
@@ -75,13 +83,13 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    const existing = db.findUserByEmail(email);
+    const existing = await db.findUserByEmail(email);
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists' });
     }
 
     const passwordHash = await hashPassword(password);
-    const user = db.createUser({
+    const user = await db.createUser({
       email,
       name: (name && String(name).trim()) || email.split('@')[0],
       password_hash: passwordHash,
@@ -102,20 +110,21 @@ app.post('/api/auth/register', async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error('[Auth] Registration error:', err);
+    console.error('[Auth] Registration error:', (err as any)?.code || (err as any)?.name);
+    if ((err as any)?.code === '23505') return res.status(409).json({ error: 'An account with this email already exists' });
     return res.status(500).json({ error: 'Registration failed. Please try again.' });
   }
-});
+}));
 
 // Login with email/password
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', asyncRoute(async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const { email, password } = req.body || {};
+    if (typeof email !== 'string' || typeof password !== 'string' || !email.trim() || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const user = db.findUserByEmail(email);
+    const user = await db.findUserByEmail(email);
     if (!user || !user.password_hash) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -139,41 +148,28 @@ app.post('/api/auth/login', async (req, res) => {
       token,
     });
   } catch (err) {
-    console.error('[Auth] Login error:', err);
+    console.error('[Auth] Login error:', (err as any)?.code || (err as any)?.name);
     return res.status(500).json({ error: 'Login failed. Please try again.' });
   }
-});
+}));
 
 // Google Sign-in / SSO
-app.post('/api/auth/google', async (req, res) => {
+app.post('/api/auth/google', asyncRoute(async (req, res) => {
   try {
-    const { credential, email, name } = req.body;
-
-    let userEmail = email;
-    let userName = name;
-
-    if (credential && typeof credential === 'string') {
-      try {
-        const parts = credential.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
-          if (payload.email) {
-            userEmail = payload.email;
-            userName = payload.name || payload.given_name || userEmail.split('@')[0];
-          }
-        }
-      } catch (err) {
-        console.warn('[Google Auth] Could not decode JWT credential, checking provided profile:', err);
-      }
+    let identity;
+    try {
+      identity = await verifyGoogleIdentity(req.body?.idToken);
+    } catch {
+      return res.status(401).json({ error: 'Google sign-in could not be verified. Please sign in again.' });
     }
+    const { email: userEmail, name: userName } = identity;
 
-    if (!userEmail) {
-      return res.status(400).json({ error: 'Valid Google email is required for Google sign in' });
+    let user = await db.findUserByEmail(userEmail);
+    if (user && user.auth_provider !== 'google') {
+      return res.status(409).json({ error: 'This account uses email and password. Please sign in with your password.' });
     }
-
-    let user = db.findUserByEmail(userEmail);
     if (!user) {
-      user = db.createUser({
+      user = await db.createUser({
         email: userEmail,
         name: userName || userEmail.split('@')[0],
         auth_provider: 'google',
@@ -197,15 +193,15 @@ app.post('/api/auth/google', async (req, res) => {
     console.error('[Google Auth] Sign in error:', err);
     return res.status(500).json({ error: 'Google sign in failed' });
   }
-});
+}));
 
 // Get current logged-in user
-app.get('/api/auth/me', (req, res) => {
+app.get('/api/auth/me', asyncRoute(async (req, res) => {
   const session = getSessionFromRequest(req);
   if (!session) {
     return res.json({ user: null });
   }
-  const user = db.findUserById(session.userId);
+  const user = await db.findUserById(session.userId);
   if (!user) {
     clearSessionCookie(res);
     return res.json({ user: null });
@@ -219,55 +215,69 @@ app.get('/api/auth/me', (req, res) => {
       created_at: user.created_at,
     },
   });
-});
+}));
 
 // Logout
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', asyncRoute(async (req, res) => {
   clearSessionCookie(res);
   return res.json({ success: true, message: 'Logged out successfully' });
-});
+}));
 
 // --- OpenRouter OAuth Routes ---
-app.get('/api/openrouter/connect', requireAuth, handleOpenRouterConnect);
-app.get(['/api/openrouter/callback', '/api/openrouter/callback/'], handleOpenRouterCallback);
-app.get('/api/openrouter/status', requireAuth, handleOpenRouterStatus);
-app.post('/api/openrouter/disconnect', requireAuth, handleOpenRouterDisconnect);
+app.get('/api/openrouter/connect', requireAuth, asyncRoute(handleOpenRouterConnect));
+app.get(['/api/openrouter/callback', '/api/openrouter/callback/'], asyncRoute(handleOpenRouterCallback));
+app.get('/api/openrouter/status', requireAuth, asyncRoute(handleOpenRouterStatus));
+app.post('/api/openrouter/disconnect', requireAuth, asyncRoute(handleOpenRouterDisconnect));
 
 // --- Chat History Routes ---
-app.get('/api/chats', requireAuth, (req, res) => {
+app.get('/api/chats', requireAuth, asyncRoute(async (req, res) => {
   const user = (req as any).user;
-  const chats = db.getUserChats(user.id);
+  const chats = await db.getUserChats(user.id);
   res.json({ chats });
-});
+}));
 
-app.post('/api/chats', requireAuth, (req, res) => {
+app.post('/api/chats', requireAuth, asyncRoute(async (req, res) => {
   const user = (req as any).user;
   const title = (req.body.title && String(req.body.title).trim()) || 'New Chat';
-  const chat = db.createChat(user.id, title);
+  const chat = await db.createChat(user.id, title);
   res.status(201).json({ chat });
-});
+}));
 
-app.get('/api/chats/:id', requireAuth, (req, res) => {
+app.get('/api/chats/:id', requireAuth, asyncRoute(async (req, res) => {
   const user = (req as any).user;
-  const chat = db.getChatById(req.params.id, user.id);
+  const chat = await db.getChatById(req.params.id, user.id);
   if (!chat) {
     return res.status(404).json({ error: 'Chat not found' });
   }
-  const messages = db.getChatMessages(chat.id);
+  const messages = await db.getChatMessages(chat.id);
   res.json({ chat, messages });
-});
+}));
 
-app.delete('/api/chats/:id', requireAuth, (req, res) => {
+app.delete('/api/chats/:id', requireAuth, asyncRoute(async (req, res) => {
   const user = (req as any).user;
-  const success = db.deleteChat(req.params.id, user.id);
+  const success = await db.deleteChat(req.params.id, user.id);
   if (!success) {
     return res.status(404).json({ error: 'Chat not found' });
   }
   res.json({ success: true });
-});
+}));
 
 // --- Streaming Chat Route ---
-app.post('/api/chat', requireAuth, chatRateLimit, handleChatStream);
+app.post('/api/chat', requireAuth, chatRateLimit, asyncRoute(handleChatStream));
+
+app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found' }));
+const apiErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+  console.error('[API request]', error?.code || error?.name || 'Error');
+  if (res.headersSent) return next(error);
+  const status = error?.type === 'entity.parse.failed' ? 400 :
+    error?.type === 'entity.too.large' ? 413 : error?.code === '23505' ? 409 : 503;
+  res.status(status).json({ error: status === 400 ? 'Invalid JSON request' :
+    status === 413 ? 'Request is too large' : status === 409 ? 'Account already exists' :
+    'The service is temporarily unavailable. Please try again.' });
+};
+app.use(apiErrorHandler);
+
+export default app;
 
 // --- Setup Vite or Static File Serving ---
 async function startServer() {
@@ -291,7 +301,10 @@ async function startServer() {
   });
 }
 
-startServer().catch((err) => {
-  console.error('[ModelMesh Server] Fatal startup error:', err);
-  process.exit(1);
-});
+if (!process.env.VERCEL && process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  startServer().catch((err) => {
+    console.error('[ModelMesh Server] Fatal startup error:', err);
+    process.exitCode = 1;
+  });
+}
+

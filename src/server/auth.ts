@@ -64,8 +64,8 @@ export function verifyToken(token: string): AuthSession | null {
 export function setSessionCookie(res: Response, token: string) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: true,      // Required for SameSite=None in iframe
-    sameSite: 'none',  // Required for cross-origin iframe
+    secure: process.env.NODE_ENV === 'production',      // HTTPS in production
+    sameSite: 'lax',  // Same-origin application
     maxAge: 7 * 24 * 60 * 60 * 1000,
     path: '/',
   });
@@ -74,8 +74,8 @@ export function setSessionCookie(res: Response, token: string) {
 export function clearSessionCookie(res: Response) {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
-    secure: true,
-    sameSite: 'none',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
     path: '/',
   });
 }
@@ -91,12 +91,13 @@ export function getSessionFromRequest(req: Request): AuthSession | null {
   return verifyToken(token);
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const session = getSessionFromRequest(req);
   if (!session) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  const user = db.findUserById(session.userId);
+  let user;
+  try { user = await db.findUserById(session.userId); } catch (error) { return next(error); }
   if (!user) {
     return res.status(401).json({ error: 'User not found or deleted' });
   }
@@ -111,3 +112,4 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
+

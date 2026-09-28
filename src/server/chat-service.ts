@@ -22,7 +22,7 @@ export async function handleChatStream(req: Request, res: Response) {
   }
 
   // 1. Verify OpenRouter connection
-  const conn = db.getProviderConnection(user.id, 'openrouter');
+  const conn = await db.getProviderConnection(user.id, 'openrouter');
   if (!conn || !conn.encrypted_credential) {
     return res.status(403).json({
       error: 'Connect OpenRouter to start chatting.',
@@ -52,16 +52,16 @@ export async function handleChatStream(req: Request, res: Response) {
 
   // 3. Resolve Chat and History
   let chatId = incomingChatId;
-  let chat = chatId ? db.getChatById(chatId, user.id) : undefined;
+  let chat = chatId ? await db.getChatById(chatId, user.id) : undefined;
   if (!chat) {
     // Generate intelligent title from prompt
     const shortTitle = cleanPrompt.length > 40 ? cleanPrompt.slice(0, 37) + '...' : cleanPrompt;
-    chat = db.createChat(user.id, shortTitle);
+    chat = await db.createChat(user.id, shortTitle);
     chatId = chat.id;
   }
 
   // Save user's message to DB
-  db.createMessage(chatId, 'user', cleanPrompt);
+  await db.createMessage(chatId, 'user', cleanPrompt);
 
   // 4. Task Classification
   const classification = classifyPrompt(cleanPrompt, aiMode as AiMode);
@@ -100,7 +100,7 @@ export async function handleChatStream(req: Request, res: Response) {
   });
 
   // Prepare full conversation messages for OpenRouter
-  const history = db.getChatMessages(chatId);
+  const history = await db.getChatMessages(chatId);
   const contextMessages: MessageParam[] = history.map((m) => ({
     role: m.role,
     content: m.content,
@@ -236,7 +236,7 @@ export async function handleChatStream(req: Request, res: Response) {
 
   if (streamCompletedSuccessfully && fullAssistantResponse) {
     // Persist assistant message in DB
-    const savedMsg = db.createMessage(
+    const savedMsg = await db.createMessage(
       chatId,
       'assistant',
       fullAssistantResponse,
@@ -260,3 +260,4 @@ export async function handleChatStream(req: Request, res: Response) {
 
   res.end();
 }
+

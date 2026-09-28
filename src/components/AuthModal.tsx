@@ -1,3 +1,6 @@
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth } from '../lib/firebase-auth.ts';
+import { readApiResponse } from '../lib/api-response.ts';
 import React, { useState } from 'react';
 import { X, Mail, Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
 import type { User } from '../types/index.ts';
@@ -39,7 +42,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      const data = await readApiResponse(res);
       if (!res.ok) {
         throw new Error(data.error || 'Authentication failed');
       }
@@ -57,23 +60,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setError(null);
     setLoading(true);
     try {
-      // Prompt for email if Google OAuth client is not yet registered in GCP console
-      const promptEmail = prompt('Enter your Google email address to sign in:', email || 'user@example.com');
-      if (!promptEmail) {
-        setLoading(false);
-        return;
-      }
+      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const idToken = await result.user.getIdToken();
 
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: promptEmail,
-          name: promptEmail.split('@')[0],
-        }),
+        body: JSON.stringify({ idToken }),
       });
 
-      const data = await res.json();
+      const data = await readApiResponse(res);
       if (!res.ok) {
         throw new Error(data.error || 'Google sign-in failed');
       }
@@ -251,3 +247,4 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </div>
   );
 };
+
