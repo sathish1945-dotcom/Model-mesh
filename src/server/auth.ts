@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import type { Request, Response, NextFunction } from 'express';
-import { db, DBUser } from './db.ts';
+import { db, type DBUser } from './db.ts';
 
 function getAuthSecret(): string {
   const secret = process.env.AUTH_SECRET;
@@ -112,4 +112,3 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash);
 }
-

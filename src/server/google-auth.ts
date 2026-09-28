@@ -1,6 +1,6 @@
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import firebaseConfig from '../../firebase-applet-config.json';
+import firebaseConfig from '../../firebase-applet-config.json' with { type: 'json' };
 
 export async function verifyGoogleIdentity(idToken: unknown) {
   if (typeof idToken !== 'string' || !idToken || idToken.length > 16384) {
