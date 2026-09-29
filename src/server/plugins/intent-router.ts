@@ -1,6 +1,5 @@
 import { connectorRegistry } from './registry.ts';
 import { db } from '../db.ts';
-import { PermissionManager } from './permission.ts';
 import type { IntegrationProvider, ActionProposal } from '../../types/index.ts';
 
 export interface ToolIntentResolution {
@@ -75,20 +74,9 @@ export async function routeToolIntent(prompt: string, userId: string): Promise<T
         p.includes('write file to drive');
 
       if (isCreateDriveFile) {
-        const titleMatch = prompt.match(/(?:called|named|file|as)\s+["']?([^"'\n,]+)["']?/i);
-        const fileName = titleMatch ? titleMatch[1].trim() : 'ModelMesh Note.txt';
-        const fileContent = prompt.replace(/create (a )?drive file:?/i, '').trim();
-
-        // Creates a WRITE action proposal requiring confirmation
-        const execRes = await drive.executeAction(
-          userId,
-          'google-drive.createFile',
-          { name: fileName, content: fileContent, mimeType: 'text/plain' },
-          false
-        );
-        if (execRes.requiresConfirmation && execRes.proposal) {
-          proposal = execRes.proposal;
-        }
+        // The production API does not yet have a durable proposal confirmation route.
+        // Do not offer a button that would inevitably fail or bypass approval.
+        observations.push('Google Drive write actions are unavailable in this release. Explain this limitation clearly; do not claim that a file was saved.');
       } else {
         // Read / Search Drive files
         // Extract potential search terms or look for "proposal", "document", etc.
