@@ -60,7 +60,7 @@ export class GoogleDriveConnector implements Connector {
    * Helper to retrieve or refresh a valid access token.
    */
   async getValidAccessToken(userId: string): Promise<string> {
-    const conn = db.getProviderConnection(userId, 'google-drive');
+    const conn = await db.getProviderConnection(userId, 'google-drive');
     if (!conn || !conn.encrypted_credential) {
       throw new Error('Google Drive is not connected. Please connect Google Drive first.');
     }
@@ -70,7 +70,7 @@ export class GoogleDriveConnector implements Connector {
 
     if (isExpired && conn.encrypted_refresh_token) {
       await this.refreshCredentials(userId);
-      const refreshedConn = db.getProviderConnection(userId, 'google-drive');
+      const refreshedConn = await db.getProviderConnection(userId, 'google-drive');
       if (refreshedConn?.encrypted_credential) {
         return decryptCredential(refreshedConn.encrypted_credential);
       }
@@ -80,7 +80,7 @@ export class GoogleDriveConnector implements Connector {
   }
 
   async refreshCredentials(userId: string): Promise<void> {
-    const conn = db.getProviderConnection(userId, 'google-drive');
+    const conn = await db.getProviderConnection(userId, 'google-drive');
     if (!conn || !conn.encrypted_refresh_token) {
       return;
     }
@@ -93,7 +93,7 @@ export class GoogleDriveConnector implements Connector {
     }
 
     const clientId = conn.metadata?.clientId || process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = conn.metadata?.clientSecret || process.env.GOOGLE_CLIENT_SECRET;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
     if (!clientId) {
       throw new Error('Google OAuth Client ID is missing for token refresh.');
@@ -117,7 +117,7 @@ export class GoogleDriveConnector implements Connector {
     if (!res.ok) {
       const errText = await res.text();
       // If refresh token was revoked, update status to error/disconnected
-      db.saveProviderConnection(
+      await db.saveProviderConnection(
         userId,
         'google-drive',
         conn.encrypted_credential || '',
@@ -147,7 +147,7 @@ export class GoogleDriveConnector implements Connector {
       encryptedRefreshToken = encryptCredential(tokenData.refresh_token);
     }
 
-    db.saveProviderConnection(
+    await db.saveProviderConnection(
       userId,
       'google-drive',
       encryptedAccessToken,
@@ -162,7 +162,7 @@ export class GoogleDriveConnector implements Connector {
       }
     );
 
-    recordAuditLog({
+    await recordAuditLog({
       userId,
       provider: 'google-drive',
       action: 'refreshCredentials',
@@ -212,7 +212,7 @@ export class GoogleDriveConnector implements Connector {
         ? new Date(Date.now() + credentials.expiresIn * 1000).toISOString()
         : undefined;
 
-      db.saveProviderConnection(userId, 'google-drive', encryptedAccess, 'connected', {
+      await db.saveProviderConnection(userId, 'google-drive', encryptedAccess, 'connected', {
         providerAccountId,
         accountUsername: username,
         scopes: GOOGLE_DRIVE_SCOPE,
@@ -220,7 +220,6 @@ export class GoogleDriveConnector implements Connector {
         tokenExpiry,
         metadata: {
           clientId: credentials.clientId,
-          clientSecret: credentials.clientSecret,
           name: userInfo.name,
           email: userInfo.email,
           picture: userInfo.picture,
@@ -228,7 +227,7 @@ export class GoogleDriveConnector implements Connector {
         },
       });
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'google-drive',
         action: 'connect',
@@ -245,7 +244,7 @@ export class GoogleDriveConnector implements Connector {
         scopes: GOOGLE_DRIVE_SCOPE,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'google-drive',
         action: 'connect',
@@ -258,22 +257,23 @@ export class GoogleDriveConnector implements Connector {
   }
 
   async disconnect(userId: string): Promise<void> {
-    const conn = db.getProviderConnection(userId, 'google-drive');
-    if (conn?.encrypted_credential) {
+    const conn = await db.getProviderConnection(userId, 'google-drive');
+    if (conn?.encrypted_refresh_token || conn?.encrypted_credential) {
       try {
-        const token = decryptCredential(conn.encrypted_credential);
-        await fetch(`${GOOGLE_OAUTH_REVOKE_URL}?token=${encodeURIComponent(token)}`, {
+        const token = decryptCredential(conn.encrypted_refresh_token || conn.encrypted_credential!);
+        await fetch(GOOGLE_OAUTH_REVOKE_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ token }),
         });
       } catch (err) {
         console.warn('[Google Drive] Revocation error on disconnect:', err);
       }
     }
 
-    db.disconnectProvider(userId, 'google-drive');
+    await db.disconnectProvider(userId, 'google-drive');
 
-    recordAuditLog({
+    await recordAuditLog({
       userId,
       provider: 'google-drive',
       action: 'disconnect',
@@ -284,7 +284,7 @@ export class GoogleDriveConnector implements Connector {
   }
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = db.getProviderConnection(userId, 'google-drive');
+    const conn = await db.getProviderConnection(userId, 'google-drive');
     if (!conn || conn.connection_status !== 'connected' || !conn.encrypted_credential) {
       return { connected: false };
     }
@@ -326,7 +326,7 @@ export class GoogleDriveConnector implements Connector {
 
     // Block destructive operations
     if (actionName.includes('delete') || actionName.includes('share') || actionName.includes('transfer')) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'google-drive',
         action: actionName,
@@ -595,7 +595,7 @@ export class GoogleDriveConnector implements Connector {
       }
 
       // Record sanitized audit log (NEVER logs full file contents)
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'google-drive',
         action: actionName,
@@ -617,7 +617,7 @@ export class GoogleDriveConnector implements Connector {
         permissionLevel: cap.permissionLevel,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'google-drive',
         action: actionName,

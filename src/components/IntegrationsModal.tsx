@@ -54,7 +54,6 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   const [connectingProvider, setConnectingProvider] = useState<IntegrationProvider | null>(null);
   const [managingProvider, setManagingProvider] = useState<IntegrationSummary | null>(null);
   const [isConnectingGoogleDrive, setIsConnectingGoogleDrive] = useState(false);
-  const [showManualDriveAuth, setShowManualDriveAuth] = useState(false);
 
   const [tokenInput, setTokenInput] = useState('');
   const [refreshTokenInput, setRefreshTokenInput] = useState('');
@@ -74,6 +73,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   // Listen for Google Drive OAuth popup messages
   useEffect(() => {
     const handleOAuthMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'GOOGLE_DRIVE_OAUTH_SUCCESS') {
         setIsConnectingGoogleDrive(false);
         setActionSuccess(event.data.message || 'Google Drive connected successfully!');
@@ -120,7 +120,6 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
     setApiKeyInput('');
     setActionError(null);
     setActionSuccess(null);
-    setShowManualDriveAuth(false);
   };
 
   const handleConnectGoogleDrivePopup = () => {
@@ -499,56 +498,6 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                         </p>
                       </div>
 
-                      {/* Manual Token Option for Dev/Sandbox */}
-                      <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-800/60">
-                        <button
-                          type="button"
-                          onClick={() => setShowManualDriveAuth(!showManualDriveAuth)}
-                          className="text-[11px] text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 font-medium flex items-center gap-1"
-                        >
-                          {showManualDriveAuth ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                          <span>Developer / Manual Token Option</span>
-                        </button>
-
-                        {showManualDriveAuth && (
-                          <form onSubmit={handleConnectSubmit} className="mt-2 space-y-2">
-                            <div>
-                              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                Google OAuth Access Token
-                              </label>
-                              <input
-                                type="password"
-                                value={tokenInput}
-                                onChange={(e) => setTokenInput(e.target.value)}
-                                placeholder="ya29.a0AfH6SM..."
-                                className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-hidden focus:border-blue-500 font-mono"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                                Google OAuth Refresh Token (Optional for auto-refresh)
-                              </label>
-                              <input
-                                type="password"
-                                value={refreshTokenInput}
-                                onChange={(e) => setRefreshTokenInput(e.target.value)}
-                                placeholder="1//04..."
-                                className="w-full px-3 py-2 text-xs rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-hidden focus:border-blue-500 font-mono"
-                              />
-                            </div>
-                            <div className="flex justify-end gap-2 pt-1">
-                              <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="px-4 py-1.5 bg-zinc-900 hover:bg-black dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 text-xs font-medium rounded-xl shadow-xs transition-colors"
-                              >
-                                {isLoading ? 'Encrypting & Saving...' : 'Save & Encrypt'}
-                              </button>
-                            </div>
-                          </form>
-                        )}
-                      </div>
                     </div>
                   ) : (
                     /* GitHub Token Form */

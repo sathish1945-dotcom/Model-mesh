@@ -47,7 +47,7 @@ export async function routeToolIntent(prompt: string, userId: string): Promise<T
   }
 
   // Check Google Drive connection
-  const driveConn = db.getProviderConnection(userId, 'google-drive');
+  const driveConn = await db.getProviderConnection(userId, 'google-drive');
 
   if (mentionsDrive && !driveConn) {
     return {

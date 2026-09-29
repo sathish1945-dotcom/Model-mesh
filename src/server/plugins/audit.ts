@@ -45,7 +45,7 @@ export function sanitizeAuditDetails(details?: Record<string, any>): Record<stri
   return sanitized;
 }
 
-export function recordAuditLog(params: {
+export async function recordAuditLog(params: {
   userId: string;
   provider: IntegrationProvider;
   action: string;
@@ -54,10 +54,10 @@ export function recordAuditLog(params: {
   status: 'success' | 'failed' | 'denied' | 'pending_confirmation';
   approvalStatus?: 'auto_approved' | 'user_confirmed' | 'rejected';
   details?: Record<string, any>;
-}): AuditLogEntry {
+}): Promise<AuditLogEntry> {
   const safeDetails = sanitizeAuditDetails(params.details);
 
-  return db.createAuditLog({
+  return await db.createAuditLog({
     user_id: params.userId,
     provider: params.provider,
     action: params.action,

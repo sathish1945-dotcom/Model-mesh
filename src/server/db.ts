@@ -3,7 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { PostgresDatabase } from './postgres.ts';
 import { getDatabaseUrl, loadEnvironment } from './env.ts';
-import type { User, ProviderConnection, Chat, ChatMessage } from '../types/index.ts';
+import type { User, ProviderConnection, Chat, ChatMessage, AuditLogEntry, IntegrationProvider } from '../types/index.ts';
 
 loadEnvironment();
 
@@ -13,6 +13,17 @@ export interface DBUser extends User {
 
 export interface DBProviderConnection extends ProviderConnection {
   encrypted_credential?: string;
+  encrypted_refresh_token?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ConnectionOptions {
+  providerAccountId?: string;
+  accountUsername?: string;
+  scopes?: string;
+  encryptedRefreshToken?: string;
+  tokenExpiry?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface DBOAuthState {
@@ -30,6 +41,7 @@ interface DatabaseSchema {
   chats: Chat[];
   messages: ChatMessage[];
   oauth_states: DBOAuthState[];
+  audit_logs: AuditLogEntry[];
 }
 
 const DB_FALLBACK_FILE = path.resolve(process.cwd(), 'data/modelmesh_db.json');
@@ -43,6 +55,7 @@ class LocalDatabase {
     chats: [],
     messages: [],
     oauth_states: [],
+    audit_logs: [],
   };
 
   constructor() {
@@ -64,6 +77,7 @@ class LocalDatabase {
           chats: parsed.chats || [],
           messages: parsed.messages || [],
           oauth_states: parsed.oauth_states || [],
+          audit_logs: parsed.audit_logs || [],
         };
       }
     } catch (err) {
@@ -108,13 +122,13 @@ class LocalDatabase {
   }
 
   // --- Provider Connections ---
-  getProviderConnection(userId: string, provider: 'openrouter' = 'openrouter'): DBProviderConnection | undefined {
+  getProviderConnection(userId: string, provider: IntegrationProvider = 'openrouter'): DBProviderConnection | undefined {
     return this.data.provider_connections.find(
       (pc) => pc.user_id === userId && pc.provider === provider && pc.connection_status === 'connected'
     );
   }
 
-  getAnyProviderConnection(userId: string, provider: 'openrouter' = 'openrouter'): DBProviderConnection | undefined {
+  getAnyProviderConnection(userId: string, provider: IntegrationProvider = 'openrouter'): DBProviderConnection | undefined {
     return this.data.provider_connections.find(
       (pc) => pc.user_id === userId && pc.provider === provider
     );
@@ -122,9 +136,10 @@ class LocalDatabase {
 
   saveProviderConnection(
     userId: string,
-    provider: 'openrouter',
+    provider: IntegrationProvider,
     encryptedCredential: string,
-    status: 'connected' | 'disconnected' | 'error' = 'connected'
+    status: 'connected' | 'disconnected' | 'error' = 'connected',
+    options: ConnectionOptions = {},
   ): DBProviderConnection {
     const existingIndex = this.data.provider_connections.findIndex(
       (pc) => pc.user_id === userId && pc.provider === provider
@@ -139,6 +154,12 @@ class LocalDatabase {
         encrypted_credential: encryptedCredential,
         connection_status: status,
         updated_at: now,
+        ...(options.providerAccountId && { provider_account_id: options.providerAccountId }),
+        ...(options.accountUsername && { account_username: options.accountUsername }),
+        ...(options.scopes && { scopes: options.scopes }),
+        ...(options.encryptedRefreshToken && { encrypted_refresh_token: options.encryptedRefreshToken }),
+        ...(options.tokenExpiry && { token_expiry: options.tokenExpiry }),
+        ...(options.metadata && { metadata: options.metadata }),
       };
       resultConn = this.data.provider_connections[existingIndex];
     } else {
@@ -150,6 +171,12 @@ class LocalDatabase {
         connection_status: status,
         created_at: now,
         updated_at: now,
+        provider_account_id: options.providerAccountId,
+        account_username: options.accountUsername,
+        scopes: options.scopes,
+        encrypted_refresh_token: options.encryptedRefreshToken,
+        token_expiry: options.tokenExpiry,
+        metadata: options.metadata,
       };
       this.data.provider_connections.push(resultConn);
     }
@@ -158,19 +185,35 @@ class LocalDatabase {
     return resultConn;
   }
 
-  disconnectProvider(userId: string, provider: 'openrouter'): boolean {
+  disconnectProvider(userId: string, provider: IntegrationProvider): boolean {
     const conn = this.data.provider_connections.find(
       (pc) => pc.user_id === userId && pc.provider === provider
     );
     if (conn) {
       conn.connection_status = 'disconnected';
       conn.encrypted_credential = undefined;
+      conn.encrypted_refresh_token = undefined;
       conn.updated_at = new Date().toISOString();
       this.saveLocalFallback();
 
       return true;
     }
     return false;
+  }
+
+  getAllProviderConnections(userId: string): DBProviderConnection[] {
+    return this.data.provider_connections.filter((conn) => conn.user_id === userId);
+  }
+
+  createAuditLog(entry: Omit<AuditLogEntry, 'id' | 'created_at'>): AuditLogEntry {
+    const log = { ...entry, id: crypto.randomUUID(), created_at: new Date().toISOString() };
+    this.data.audit_logs.push(log);
+    this.saveLocalFallback();
+    return log;
+  }
+
+  getAuditLogs(userId: string): AuditLogEntry[] {
+    return this.data.audit_logs.filter((log) => log.user_id === userId).slice(-100).reverse();
   }
 
   // --- OAuth PKCE States with Expiry and Consumption Control ---

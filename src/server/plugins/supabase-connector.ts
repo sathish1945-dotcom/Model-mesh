@@ -138,7 +138,7 @@ export class SupabaseConnector implements Connector {
       }
 
       const encrypted = encryptCredential(credentialData);
-      db.saveProviderConnection(userId, 'supabase', encrypted, 'connected', {
+      await db.saveProviderConnection(userId, 'supabase', encrypted, 'connected', {
         providerAccountId,
         accountUsername: username,
         scopes: 'database,tables,read,write',
@@ -147,7 +147,7 @@ export class SupabaseConnector implements Connector {
         },
       });
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'supabase',
         action: 'connect',
@@ -163,7 +163,7 @@ export class SupabaseConnector implements Connector {
         providerAccountId,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'supabase',
         action: 'connect',
@@ -176,8 +176,8 @@ export class SupabaseConnector implements Connector {
   }
 
   async disconnect(userId: string): Promise<void> {
-    db.disconnectProvider(userId, 'supabase');
-    recordAuditLog({
+    await db.disconnectProvider(userId, 'supabase');
+    await recordAuditLog({
       userId,
       provider: 'supabase',
       action: 'disconnect',
@@ -188,7 +188,7 @@ export class SupabaseConnector implements Connector {
   }
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = db.getProviderConnection(userId, 'supabase');
+    const conn = await db.getProviderConnection(userId, 'supabase');
     if (!conn || conn.connection_status !== 'connected' || !conn.encrypted_credential) {
       return { connected: false };
     }
@@ -221,7 +221,7 @@ export class SupabaseConnector implements Connector {
     if (params.query) {
       for (const pattern of DANGEROUS_SQL_PATTERNS) {
         if (pattern.test(params.query)) {
-          recordAuditLog({
+          await recordAuditLog({
             userId,
             provider: 'supabase',
             action: actionName,
@@ -259,7 +259,7 @@ export class SupabaseConnector implements Connector {
       };
     }
 
-    const conn = db.getProviderConnection(userId, 'supabase');
+    const conn = await db.getProviderConnection(userId, 'supabase');
     if (!conn || !conn.encrypted_credential) {
       return {
         success: false,
@@ -550,7 +550,7 @@ export class SupabaseConnector implements Connector {
           throw new Error(`Unhandled Supabase action: ${actionName}`);
       }
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'supabase',
         action: actionName,
@@ -567,7 +567,7 @@ export class SupabaseConnector implements Connector {
         permissionLevel: cap.permissionLevel,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'supabase',
         action: actionName,
