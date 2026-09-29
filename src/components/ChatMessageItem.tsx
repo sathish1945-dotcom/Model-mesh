@@ -93,8 +93,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       {/* Content Body */}
       <div className="flex-1 min-w-0 space-y-2">
         {/* Header / Routing Badge for AI response */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
               {isUser ? 'You' : 'ModelMesh'}
             </span>
@@ -106,7 +106,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 title={message.model_id ? `Model: ${message.model_id}` : undefined}
               >
                 {categoryMeta.icon}
-                <span>Using {categoryMeta.label}</span>
+                <span className="truncate max-w-[min(58vw,20rem)]">{message.model_id || categoryMeta.label}</span>
               </span>
             )}
 
