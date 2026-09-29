@@ -46,7 +46,7 @@ export const ProviderSettingsModal: React.FC<ProviderSettingsModalProps> = ({
                 Settings → Models & Routing
               </div>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                OpenRouter Connection
+                AI models & connection
               </h2>
             </div>
           </div>

@@ -129,6 +129,7 @@ export async function handleChatStream(req: Request, res: Response) {
     role: m.role,
     content: m.content,
   }));
+  contextMessages.unshift({ role: 'system', content: 'You are ModelMesh, a helpful AI assistant. Answer the user directly. Do not claim to have completed actions in external services unless a tool result confirms completion. If a request needs an unavailable action, explain what you can and cannot do.' });
 
   // If live telemetry/inspection data was gathered, augment the prompt context
   if (toolResolution?.toolContextPrompt) {
@@ -267,6 +268,7 @@ export async function handleChatStream(req: Request, res: Response) {
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
       let modelStreamedText = '';
+      let streamError = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -290,6 +292,7 @@ export async function handleChatStream(req: Request, res: Response) {
               const parsed = JSON.parse(dataStr);
               if (parsed.error) {
                 console.warn(`[Chat] OpenRouter stream error from ${currentModel}:`, parsed.error);
+                streamError = true;
                 continue;
               }
 
@@ -334,6 +337,14 @@ export async function handleChatStream(req: Request, res: Response) {
         }
       }
 
+      // Guardrail-only output is not a useful assistant response. Retry with
+      // another explicit chat model rather than saving it as the answer.
+      const unusableResponse = /^\s*(?:user safety\s*:\s*safe\s*)?(?:response safety\s*:\s*safe)\s*$/i.test(modelStreamedText);
+      if (streamError || unusableResponse || !modelStreamedText.trim()) {
+        if (i < modelsToTry.length - 1) continue;
+        break;
+      }
+
       successfulModel = currentModel;
       streamCompletedSuccessfully = true;
       break; // Successfully streamed!
@@ -373,4 +384,3 @@ export async function handleChatStream(req: Request, res: Response) {
 
   res.end();
 }
-

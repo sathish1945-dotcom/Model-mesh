@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { ChatMessage, TaskCategory } from '../types/index.ts';
 import { ActionProposalCard } from './ActionProposalCard.tsx';
+import { displayModelName } from '../lib/model-name.ts';
 
 interface ChatMessageItemProps {
   message: ChatMessage;
@@ -106,7 +107,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 title={message.model_id ? `Model: ${message.model_id}` : undefined}
               >
                 {categoryMeta.icon}
-                <span className="truncate max-w-[min(58vw,20rem)]">{message.model_id || categoryMeta.label}</span>
+                <span className="truncate max-w-[min(58vw,20rem)]">{displayModelName(message.model_id) || categoryMeta.label}</span>
               </span>
             )}
 

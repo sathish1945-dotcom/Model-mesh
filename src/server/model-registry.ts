@@ -9,12 +9,10 @@ export interface CategoryModelConfig {
   secondaryModel: string;
 }
 
-export const OPENROUTER_FREE_ROUTER_FALLBACK = 'openrouter/free';
-
 /**
  * Server-side centralized model registry.
  * Easy to update as OpenRouter free model offerings evolve over time.
- * Note: Free Model Policy guarantees only models with ':free' or free router are allowed.
+ * Only explicit free models are used for chat; the free router selects randomly.
  */
 export const MODEL_REGISTRY: Record<TaskCategory, CategoryModelConfig> = {
   coding: {
@@ -30,8 +28,8 @@ export const MODEL_REGISTRY: Record<TaskCategory, CategoryModelConfig> = {
     displayName: 'Reasoning AI',
     badgeLabel: 'Reasoning AI',
     description: 'Optimized for step-by-step logic, complex problem solving, and architecture',
-    primaryModel: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-    secondaryModel: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    primaryModel: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    secondaryModel: 'google/gemma-4-31b-it:free',
   },
   finance: {
     category: 'finance',
@@ -46,8 +44,8 @@ export const MODEL_REGISTRY: Record<TaskCategory, CategoryModelConfig> = {
     displayName: 'General AI',
     badgeLabel: 'General AI',
     description: 'Versatile general-purpose intelligence for all conversational and creative requests',
-    primaryModel: 'google/gemma-4-26b-a4b-it:free',
-    secondaryModel: 'qwen/qwen3.8-27b:free',
+    primaryModel: 'google/gemma-4-31b-it:free',
+    secondaryModel: 'google/gemma-4-26b-a4b-it:free',
   },
 };
 
@@ -102,7 +100,6 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
   // Fallback to static configured models if network lookup fails
   if (!availableFreeModelsCache) {
     availableFreeModelsCache = new Set([
-      'openrouter/free',
       'google/gemma-4-26b-a4b-it:free',
       'google/gemma-4-31b-it:free',
       'qwen/qwen3.8-27b:free',
