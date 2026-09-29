@@ -1,6 +1,7 @@
 import React from 'react';
-import { Plus, MessageSquare, Trash2, X, Download } from 'lucide-react';
-import type { Chat } from '../types/index.ts';
+import { Plus, MessageSquare, Trash2, X, Download, Blocks, Settings, LogOut, Sun, Moon, UserRound } from 'lucide-react';
+import { ModelMeshLogo } from './ModelMeshLogo.tsx';
+import type { Chat, User } from '../types/index.ts';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,6 +12,13 @@ interface SidebarProps {
   onNewChat: () => void;
   onDeleteChat: (chatId: string) => void;
   onExportChat?: (chatId: string) => void;
+  onOpenSettings: () => void;
+  onOpenIntegrations: () => void;
+  onOpenAuth: () => void;
+  onLogout: () => void;
+  onToggleDarkMode: () => void;
+  darkMode: boolean;
+  user: User | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -22,7 +30,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
   onDeleteChat,
   onExportChat,
+  onOpenSettings,
+  onOpenIntegrations,
+  onOpenAuth,
+  onLogout,
+  onToggleDarkMode,
+  darkMode,
+  user,
 }) => {
+  const menuAction = (callback: () => void) => () => { callback(); if (window.innerWidth < 768) onClose(); };
   return (
     <>
       {/* Mobile backdrop */}
@@ -41,23 +57,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         } ${!isOpen ? 'md:hidden' : ''}`}
       >
         {/* Top header */}
-        <div className="p-3.5 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center justify-between">
+        <div className="p-3 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center gap-2">
+          <ModelMeshLogo className="w-7 h-7 shrink-0" />
+          <span className="font-semibold text-sm flex-1">ModelMesh</span>
+          <button onClick={onClose} aria-label="Close menu" className="md:hidden min-w-11 min-h-11 flex items-center justify-center rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-3 flex items-center justify-between">
           <button
             onClick={() => {
               onNewChat();
               if (window.innerWidth < 768) onClose();
             }}
-            className="flex-1 flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 font-medium text-xs py-2 px-3 rounded-lg shadow-xs transition-all"
+            className="flex-1 flex items-center gap-3 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium text-sm min-h-11 px-3 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4 text-blue-500" />
-            <span>New Chat</span>
-          </button>
-          <button
-            onClick={onClose}
-            aria-label="Close chat history"
-            className="md:hidden min-w-11 min-h-11 ml-2 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-lg"
-          >
-            <X className="w-4 h-4" />
+            <span>New chat</span>
           </button>
         </div>
 
@@ -128,9 +142,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* Footer info */}
-        <div className="p-3 border-t border-zinc-200/80 dark:border-zinc-800 text-[11px] text-zinc-400 dark:text-zinc-500 text-center">
-          ModelMesh • Intelligent Free AI Router
+        <div className="p-2 border-t border-zinc-200/80 dark:border-zinc-800 space-y-0.5 text-sm">
+          <button onClick={menuAction(onOpenIntegrations)} className="mobile-menu-item"><Blocks className="w-4 h-4" /> Integrations</button>
+          <button onClick={menuAction(onOpenSettings)} className="mobile-menu-item"><Settings className="w-4 h-4" /> OpenRouter settings</button>
+          <button onClick={menuAction(onToggleDarkMode)} className="mobile-menu-item">{darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} {darkMode ? 'Light theme' : 'Dark theme'}</button>
+          {user ? <button onClick={menuAction(onLogout)} className="mobile-menu-item"><LogOut className="w-4 h-4" /> Sign out</button> : <button onClick={menuAction(onOpenAuth)} className="mobile-menu-item"><UserRound className="w-4 h-4" /> Sign in</button>}
         </div>
       </aside>
     </>
