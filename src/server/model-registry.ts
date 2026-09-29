@@ -45,7 +45,7 @@ export const MODEL_REGISTRY: Record<TaskCategory, CategoryModelConfig> = {
     badgeLabel: 'General AI',
     description: 'Versatile general-purpose intelligence for all conversational and creative requests',
     primaryModel: 'google/gemma-4-31b-it:free',
-    secondaryModel: 'google/gemma-4-26b-a4b-it:free',
+    secondaryModel: 'inclusionai/ling-3.0-flash:free',
   },
 };
 
@@ -107,6 +107,7 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
       'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
       'nvidia/nemotron-3-ultra-550b-a55b:free',
       'inclusionai/ling-3.0-flash-fin:free',
+      'inclusionai/ling-3.0-flash:free',
       'liquid/lfm-2.5-2.6b:free',
     ]);
   }
