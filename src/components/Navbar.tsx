@@ -14,7 +14,9 @@ import {
   Compass,
   Download,
   Blocks,
+  Layers3,
 } from 'lucide-react';
+import { displayModelName } from '../lib/model-name.ts';
 import { ModelMeshLogo } from './ModelMeshLogo.tsx';
 import type { User, ProviderConnection, AiMode } from '../types/index.ts';
 
@@ -22,6 +24,8 @@ interface NavbarProps {
   user: User | null;
   providerStatus: ProviderConnection | null;
   aiMode: AiMode;
+  selectedModelId: string | null;
+  onOpenModels: () => void;
   onSelectAiMode: (mode: AiMode) => void;
   onNewChat: () => void;
   onOpenSettings: () => void;
@@ -48,6 +52,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   user,
   providerStatus,
   aiMode,
+  selectedModelId,
+  onOpenModels,
   onSelectAiMode,
   onNewChat,
   onOpenSettings,
@@ -132,7 +138,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           aria-haspopup="menu"
         >
           {currentModeObj.icon}
-          <span className="truncate">{aiMode === 'auto' ? 'Auto' : currentModeObj.label}</span>
+          <span className="truncate">{selectedModelId ? displayModelName(selectedModelId) : aiMode === 'auto' ? 'Auto' : currentModeObj.label}</span>
           <ChevronDown className="w-3 h-3 text-zinc-400 ml-0.5" />
         </button>
 
@@ -162,6 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </button>
             ))}
+            <button type="button" onClick={() => { setModeDropdownOpen(false); onOpenModels(); }} className="w-full text-left px-3 py-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"><Layers3 className="w-4 h-4" /> Browse all free models & usage</button>
           </div>
         )}
       </div>

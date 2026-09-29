@@ -8,6 +8,7 @@ import { RoutingIndicator } from './components/RoutingIndicator.tsx';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { IntegrationsModal } from './components/IntegrationsModal.tsx';
+import { ModelsModal } from './components/ModelsModal.tsx';
 import { logOutGoogle } from './lib/firebase-auth.ts';
 import { formatChatToMarkdown, downloadMarkdownFile } from './lib/export-markdown.ts';
 import { apiRequest, parseApiError } from './lib/api.ts';
@@ -37,10 +38,12 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [aiMode, setAiMode] = useState<AiMode>('auto');
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
   // UI & Drawer state
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isModelsOpen, setIsModelsOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [bannerAlert, setBannerAlert] = useState<{ message: string; type: 'error' | 'info' | 'success' } | null>(null);
@@ -212,6 +215,7 @@ export default function App() {
       setChats([]);
       setActiveChatId(null);
       setMessages([]);
+      setSelectedModelId(null);
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -377,6 +381,7 @@ export default function App() {
           prompt: promptToSend.trim(),
           chatId: activeChatId,
           aiMode,
+          modelId: selectedModelId || undefined,
         }),
         signal: abortController.signal,
       });
@@ -617,6 +622,7 @@ export default function App() {
         onDeleteChat={handleDeleteChat}
         onExportChat={handleExportSpecificChat}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenModels={() => setIsModelsOpen(true)}
         onOpenIntegrations={() => setIsIntegrationsOpen(true)}
         onOpenAuth={() => setIsAuthOpen(true)}
         onLogout={handleLogout}
@@ -632,7 +638,9 @@ export default function App() {
           user={user}
           providerStatus={providerStatus}
           aiMode={aiMode}
-          onSelectAiMode={setAiMode}
+          selectedModelId={selectedModelId}
+          onOpenModels={() => setIsModelsOpen(true)}
+          onSelectAiMode={(mode) => { setAiMode(mode); setSelectedModelId(null); }}
           onNewChat={handleNewChat}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenIntegrations={() => setIsIntegrationsOpen(true)}
@@ -718,6 +726,7 @@ export default function App() {
           isStreaming={isStreaming}
           disabled={!isConnected && !user}
           aiMode={aiMode}
+          selectedModelId={selectedModelId}
         />
       </div>
 
@@ -731,6 +740,8 @@ export default function App() {
         isConnecting={isConnectingOpenRouter}
         onOpenIntegrations={() => setIsIntegrationsOpen(true)}
       />
+
+      <ModelsModal isOpen={isModelsOpen} onClose={() => setIsModelsOpen(false)} selectedModelId={selectedModelId} onSelectModel={(id) => { setSelectedModelId(id); setAiMode('auto'); }} isConnected={isConnected} />
 
       {/* Developer Integrations & Plugins Modal */}
       <IntegrationsModal

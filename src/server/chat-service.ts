@@ -3,6 +3,7 @@ import { db } from './db.ts';
 import { decryptCredential } from './encryption.ts';
 import { classifyPrompt } from './task-classifier.ts';
 import { resolveModelRoute } from './model-router.ts';
+import { getFreeChatModels } from './model-registry.ts';
 import { validatePrompt } from './rate-limit.ts';
 import { getAppUrl } from './openrouter-oauth.ts';
 import { routeToolIntent } from './plugins/intent-router.ts';
@@ -44,12 +45,15 @@ export async function handleChatStream(req: Request, res: Response) {
   }
 
   // 2. Validate prompt
-  const { prompt, chatId: incomingChatId, aiMode = 'auto' } = req.body;
+  const { prompt, chatId: incomingChatId, aiMode = 'auto', modelId } = req.body;
   const validation = validatePrompt(prompt);
   if (!validation.valid || !validation.cleanPrompt) {
     return res.status(400).json({ error: validation.error || 'Invalid prompt' });
   }
   const cleanPrompt = validation.cleanPrompt;
+  if (modelId != null && (typeof modelId !== 'string' || !modelId.endsWith(':free') || !(await getFreeChatModels()).some((model) => model.id === modelId))) {
+    return res.status(400).json({ error: 'Selected free chat model is unavailable. Choose another in Models.' });
+  }
 
   // 3. Resolve Chat and History
   let chatId = incomingChatId;
@@ -68,7 +72,9 @@ export async function handleChatStream(req: Request, res: Response) {
   const classification = classifyPrompt(cleanPrompt, aiMode as AiMode);
 
   // 5. Model Resolution
-  const routeResolution = await resolveModelRoute(classification.category, userApiKey);
+  const routeResolution = modelId
+    ? { category: classification.category, selectedModel: modelId as string, fallbackModels: [], displayName: 'Selected model' }
+    : await resolveModelRoute(classification.category, userApiKey);
 
   // Setup SSE stream headers
   res.writeHead(200, {
