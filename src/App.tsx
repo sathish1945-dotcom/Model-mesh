@@ -51,6 +51,7 @@ export default function App() {
   const [routingStatus, setRoutingStatus] = useState<'idle' | 'routing' | 'streaming'>('idle');
   const [activeCategory, setActiveCategory] = useState<TaskCategory | undefined>();
   const [isFallbackRoute, setIsFallbackRoute] = useState(false);
+  const [activeModelId, setActiveModelId] = useState<string | undefined>();
   const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -226,6 +227,7 @@ export default function App() {
     setRoutingStatus('idle');
     setActiveCategory(undefined);
     setIsFallbackRoute(false);
+    setActiveModelId(undefined);
   };
 
   const handleDeleteChat = async (chatId: string) => {
@@ -340,6 +342,7 @@ export default function App() {
     setRoutingStatus('routing');
     setActiveCategory(undefined);
     setIsFallbackRoute(false);
+    setActiveModelId(undefined);
     setInput('');
 
     const assistantMsgId = `assistant-${Date.now()}`;
@@ -423,6 +426,7 @@ export default function App() {
             } else if (event.type === 'routing') {
               setRoutingStatus('streaming');
               setActiveCategory(event.category);
+              setActiveModelId(event.modelId);
               if (event.chatId && !activeChatId) {
                 setActiveChatId(event.chatId);
                 fetchChats();
@@ -443,6 +447,8 @@ export default function App() {
               });
             } else if (event.type === 'fallback_switch') {
               setIsFallbackRoute(true);
+              setActiveModelId(event.activeModel);
+              setMessages((prev) => prev.map((message) => message.id === assistantMsgId ? { ...message, model_id: event.activeModel } : message));
               if (event.resetContent) {
                 accumulatedText = '';
                 setMessages((prev) => {
@@ -610,6 +616,13 @@ export default function App() {
         onNewChat={handleNewChat}
         onDeleteChat={handleDeleteChat}
         onExportChat={handleExportSpecificChat}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenIntegrations={() => setIsIntegrationsOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onLogout={handleLogout}
+        onToggleDarkMode={() => setDarkMode(!darkMode)}
+        darkMode={darkMode}
+        user={user}
       />
 
       {/* Main Chat Area */}
@@ -686,6 +699,7 @@ export default function App() {
               <RoutingIndicator
                 status={routingStatus}
                 category={activeCategory}
+                modelDisplayName={activeModelId}
                 isFallback={isFallbackRoute}
               />
 
