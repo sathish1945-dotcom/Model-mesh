@@ -556,7 +556,7 @@ export default function App() {
                 message: event.error,
                 type: 'error',
               });
-              const errorContent = accumulatedText || `⚠️ ${event.error}`;
+              const errorContent = `⚠️ ${event.error}`;
               setMessages((prev) => {
                 const lastIndex = prev.length - 1;
                 if (lastIndex < 0) return prev;
