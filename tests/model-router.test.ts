@@ -9,6 +9,8 @@ test('task routes select explicit available chat models, never the random free r
     'google/gemma-4-31b-it:free',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
     'inclusionai/ling-3.0-flash-fin:free',
+    'inclusionai/ling-3.0-flash:free',
+    'qwen/qwen3.8-27b:free',
   ].map((id) => ({ id, pricing: { prompt: '0', completion: '0' } })) }), { status: 200 });
   try {
     const coding = await resolveModelRoute('coding');
@@ -19,6 +21,8 @@ test('task routes select explicit available chat models, never the random free r
     assert.equal(reasoning.selectedModel, 'nvidia/nemotron-3-ultra-550b-a55b:free');
     assert.equal(finance.selectedModel, 'inclusionai/ling-3.0-flash-fin:free');
     assert.equal(chat.selectedModel, 'google/gemma-4-31b-it:free');
+    assert.equal(chat.fallbackModels[0], 'inclusionai/ling-3.0-flash:free');
+    assert.equal(chat.fallbackModels[1], 'qwen/qwen3.8-27b:free');
     for (const route of [coding, reasoning, finance, chat]) {
       assert.ok([route.selectedModel, ...route.fallbackModels].every((id) => id.endsWith(':free') && id !== 'openrouter/free'));
     }
