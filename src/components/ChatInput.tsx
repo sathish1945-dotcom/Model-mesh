@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Send, Square, Plus, Sparkles } from 'lucide-react';
 import type { AiMode } from '../types/index.ts';
+import { displayModelName } from '../lib/model-name.ts';
 
 interface ChatInputProps {
   input: string;
@@ -11,6 +12,7 @@ interface ChatInputProps {
   isStreaming: boolean;
   disabled?: boolean;
   aiMode: AiMode;
+  selectedModelId: string | null;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -22,6 +24,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isStreaming,
   disabled,
   aiMode,
+  selectedModelId,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -58,6 +61,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             placeholder={
               disabled
                 ? 'Please connect OpenRouter to start chatting...'
+                : selectedModelId
+                ? `Ask ${displayModelName(selectedModelId)} anything...`
                 : aiMode === 'auto'
                 ? 'Ask anything... (automatically routed to free model)'
                 : `Ask a ${aiMode} question...`
@@ -103,7 +108,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500 px-1">
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 text-blue-500" />
-            <span>Mode: <strong className="capitalize text-zinc-600 dark:text-zinc-400">{aiMode}</strong></span>
+            <span>Mode: <strong className="text-zinc-600 dark:text-zinc-400">{selectedModelId ? displayModelName(selectedModelId) : aiMode}</strong></span>
             <span>• Only free models used</span>
           </div>
           <div className="hidden sm:block">Enter to send · Shift+Enter for a new line</div>
