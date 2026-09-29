@@ -51,6 +51,7 @@ export const MODEL_REGISTRY: Record<TaskCategory, CategoryModelConfig> = {
 
 // Cache for verified available models from OpenRouter
 let availableFreeModelsCache: Set<string> | null = null;
+let freeChatModelDetails: Array<{ id: string; name: string; description: string; contextLength?: number }> = [];
 let lastCacheFetchTime = 0;
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -77,13 +78,17 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
     });
 
     if (res.ok) {
-      const data = (await res.json()) as { data?: Array<{ id: string; pricing?: { prompt?: string; completion?: string } }> };
+      const data = (await res.json()) as { data?: Array<{ id: string; name?: string; description?: string; context_length?: number; architecture?: { input_modalities?: string[]; output_modalities?: string[] }; pricing?: { prompt?: string; completion?: string } }> };
       if (Array.isArray(data.data)) {
         const freeModels = new Set<string>();
+        freeChatModelDetails = [];
         for (const m of data.data) {
           // Free models have ':free' or 0 pricing
-          if (m.id.endsWith(':free') || (m.pricing?.prompt === '0' && m.pricing?.completion === '0')) {
+          const isChat = m.architecture?.input_modalities?.includes('text') !== false && m.architecture?.output_modalities?.includes('text') !== false;
+          const isUtility = /\b(safety|moderation|guardrail|embedding|rerank)\b/i.test(`${m.id} ${m.name || ''}`);
+          if (m.id.endsWith(':free') && isChat && !isUtility) {
             freeModels.add(m.id);
+            freeChatModelDetails.push({ id: m.id, name: m.name || m.id, description: (m.description || '').slice(0, 220), contextLength: m.context_length });
           }
         }
         if (freeModels.size > 0) {
@@ -119,4 +124,11 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
  */
 export function isFreeModel(modelId: string): boolean {
   return modelId.endsWith(':free') || modelId === 'openrouter/free' || modelId === 'openrouter/auto:free';
+}
+
+export async function getFreeChatModels() {
+  const available = await refreshAvailableModels();
+  return freeChatModelDetails.length
+    ? freeChatModelDetails.filter((model) => available.has(model.id)).sort((a, b) => a.name.localeCompare(b.name))
+    : [...available].filter((id) => id.endsWith(':free')).map((id) => ({ id, name: id, description: '' }));
 }
