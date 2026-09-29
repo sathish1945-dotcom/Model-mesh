@@ -14,7 +14,6 @@ import {
   Compass,
   Download,
   Blocks,
-  Ellipsis,
 } from 'lucide-react';
 import { ModelMeshLogo } from './ModelMeshLogo.tsx';
 import type { User, ProviderConnection, AiMode } from '../types/index.ts';
@@ -62,24 +61,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSidebar,
 }) => {
   const [modeDropdownOpen, setModeDropdownOpen] = React.useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
-  const mobileMenuRef = React.useRef<HTMLDivElement>(null);
-  const mobilePanelRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setModeDropdownOpen(false);
       }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node) && !mobilePanelRef.current?.contains(e.target as Node)) {
-        setMobileMenuOpen(false);
-      }
     }
     function handleEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setModeDropdownOpen(false);
-        setMobileMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -131,21 +123,21 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Center: AI Mode Dropdown */}
-      <div className="relative hidden md:block md:ml-auto" ref={dropdownRef}>
+      <div className="relative ml-auto md:ml-auto min-w-0" ref={dropdownRef}>
         <button
           type="button"
           onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-          className="flex w-full md:w-auto justify-center items-center gap-1.5 min-h-10 text-xs font-medium text-zinc-800 dark:text-zinc-200 bg-zinc-100/90 dark:bg-zinc-900 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-colors shadow-xs"
+          className="flex max-w-[9rem] sm:max-w-none justify-center items-center gap-1.5 min-h-10 text-xs font-medium text-zinc-800 dark:text-zinc-200 bg-zinc-100/90 dark:bg-zinc-900 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-colors shadow-xs"
           aria-expanded={modeDropdownOpen}
           aria-haspopup="menu"
         >
           {currentModeObj.icon}
-          <span>{currentModeObj.label}</span>
+          <span className="truncate">{aiMode === 'auto' ? 'Auto' : currentModeObj.label}</span>
           <ChevronDown className="w-3 h-3 text-zinc-400 ml-0.5" />
         </button>
 
         {modeDropdownOpen && (
-          <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-full md:w-64 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1rem)] bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
             <div className="px-3 py-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               Routing Mode
             </div>
@@ -175,10 +167,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Right: Export Markdown, Tasks, Provider status, Theme toggle, Settings, User */}
-      <div className="flex items-center gap-1.5 sm:gap-2 ml-auto md:ml-0" ref={mobileMenuRef}>
-        <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden min-w-11 min-h-11 flex items-center justify-center rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="Open menu" aria-expanded={mobileMenuOpen} aria-controls="mobile-navigation-menu">
-          <Ellipsis className="w-5 h-5" />
-        </button>
+      <div className="hidden md:flex items-center gap-1.5 sm:gap-2 ml-0">
         {/* Export Current Chat as Markdown Button */}
         {hasMessagesToExport && onExportMarkdown && (
           <button
@@ -274,19 +263,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
       </div>
-      {mobileMenuOpen && (
-        <div ref={mobilePanelRef} id="mobile-navigation-menu" className="absolute md:hidden right-2 top-14 w-[min(19rem,calc(100vw-1rem))] max-h-[calc(100dvh-5rem)] overflow-y-auto p-2 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-50">
-          <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">Model mode</div>
-          {MODE_OPTIONS.map((opt) => <button key={opt.id} type="button" className={`mobile-menu-item ${aiMode === opt.id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : ''}`} onClick={() => { onSelectAiMode(opt.id); setMobileMenuOpen(false); }}>{opt.icon}<span>{opt.label}</span></button>)}
-          <div className="my-1 border-t border-zinc-200 dark:border-zinc-800" />
-          <button className="mobile-menu-item" onClick={() => { onOpenIntegrations(); setMobileMenuOpen(false); }}><Blocks className="w-4 h-4" /> Integrations</button>
-          <button className="mobile-menu-item" onClick={() => { onOpenSettings(); setMobileMenuOpen(false); }}><Settings className="w-4 h-4" /> OpenRouter settings</button>
-          {hasMessagesToExport && onExportMarkdown && <button className="mobile-menu-item" onClick={() => { onExportMarkdown(); setMobileMenuOpen(false); }}><Download className="w-4 h-4" /> Export chat</button>}
-          <button className="mobile-menu-item" onClick={() => { onToggleDarkMode(); setMobileMenuOpen(false); }}>{darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} {darkMode ? 'Light theme' : 'Dark theme'}</button>
-          {!user && <button className="mobile-menu-item" onClick={() => { onOpenAuth(); setMobileMenuOpen(false); }}>Sign in or create account</button>}
-          {user && <button className="mobile-menu-item text-red-600" onClick={() => { onLogout(); setMobileMenuOpen(false); }}><LogOut className="w-4 h-4" /> Sign out</button>}
-        </div>
-      )}
     </header>
   );
 };

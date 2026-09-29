@@ -57,7 +57,7 @@ export const RoutingIndicator: React.FC<RoutingIndicatorProps> = ({
       <div className="flex items-center justify-center py-1.5 px-3">
         <div className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-medium border shadow-2xs ${meta.color}`}>
           {isFallback ? <ArrowRightLeft className="w-3 h-3 text-amber-500" /> : meta.icon}
-          <span>{isFallback ? `Fallback: Using ${meta.label}` : `Using ${meta.label}`}</span>
+          <span className="truncate max-w-[min(75vw,28rem)]" title={modelDisplayName}>{isFallback ? 'Fallback · ' : 'Running · '}{modelDisplayName || meta.label}</span>
         </div>
       </div>
     );
