@@ -7,9 +7,8 @@ import { EmptyChatState } from './components/EmptyChatState.tsx';
 import { RoutingIndicator } from './components/RoutingIndicator.tsx';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
-import { GoogleTasksModal } from './components/GoogleTasksModal.tsx';
 import { IntegrationsModal } from './components/IntegrationsModal.tsx';
-import { initGoogleAuth, logOutGoogle } from './lib/firebase-auth.ts';
+import { logOutGoogle } from './lib/firebase-auth.ts';
 import { formatChatToMarkdown, downloadMarkdownFile } from './lib/export-markdown.ts';
 import { apiRequest, parseApiError } from './lib/api.ts';
 import type {
@@ -30,12 +29,7 @@ export default function App() {
   // Auth & Provider state
   const [user, setUser] = useState<User | null>(null);
   const [providerStatus, setProviderStatus] = useState<ProviderConnection | null>(null);
-  const [appUrl, setAppUrl] = useState<string>(window.location.origin);
   const [isConnectingOpenRouter, setIsConnectingOpenRouter] = useState(false);
-
-  // Google Tasks Workspace OAuth state
-  const [tasksToken, setTasksToken] = useState<string | null>(null);
-  const [isTasksModalOpen, setIsTasksModalOpen] = useState(false);
 
   // Chat & History state
   const [chats, setChats] = useState<Chat[]>([]);
@@ -45,7 +39,7 @@ export default function App() {
   const [aiMode, setAiMode] = useState<AiMode>('auto');
 
   // UI & Drawer state
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -71,30 +65,16 @@ export default function App() {
 
   // Initial Load: check config, auth, and provider status
   useEffect(() => {
-    fetchConfig();
     fetchCurrentUser();
 
-    // Init Firebase Auth for Google Tasks
-    const unsubscribe = initGoogleAuth(
-      (_firebaseUser, token) => {
-        setTasksToken(token);
-      },
-      () => {
-        setTasksToken(null);
-      }
-    );
-
-    return () => unsubscribe();
   }, []);
 
-  const fetchConfig = async () => {
-    try {
-      const data = await apiRequest<{ appUrl?: string }>('/api/config');
-      if (data.appUrl) setAppUrl(data.appUrl);
-    } catch (e) {
-      // Fallback to origin
-    }
-  };
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const syncSidebar = () => setIsSidebarOpen(media.matches);
+    media.addEventListener('change', syncSidebar);
+    return () => media.removeEventListener('change', syncSidebar);
+  }, []);
 
   const fetchCurrentUser = async () => {
     try {
@@ -152,6 +132,7 @@ export default function App() {
   // Listen for OAuth PKCE postMessage from OpenRouter popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'OAUTH_AUTH_SUCCESS' && event.data?.provider === 'openrouter') {
         fetchProviderStatus();
         setIsConnectingOpenRouter(false);
@@ -230,7 +211,6 @@ export default function App() {
       setChats([]);
       setActiveChatId(null);
       setMessages([]);
-      setTasksToken(null);
     } catch (err) {
       console.error('Logout error:', err);
     }
@@ -619,7 +599,7 @@ export default function App() {
   const isConnected = providerStatus?.connection_status === 'connected';
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors">
       {/* Sidebar (History & Drawer) */}
       <Sidebar
         isOpen={isSidebarOpen}
@@ -642,9 +622,7 @@ export default function App() {
           onSelectAiMode={setAiMode}
           onNewChat={handleNewChat}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenTasks={() => setIsTasksModalOpen(true)}
           onOpenIntegrations={() => setIsIntegrationsOpen(true)}
-          isTasksConnected={Boolean(tasksToken)}
           onExportMarkdown={handleExportCurrentChat}
           hasMessagesToExport={messages.length > 0}
           onOpenAuth={() => setIsAuthOpen(true)}
@@ -677,7 +655,7 @@ export default function App() {
         )}
 
         {/* Chat Scroll Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" role="main">
           {messages.length === 0 ? (
             <EmptyChatState
               onSelectPrompt={(text) => {
@@ -688,7 +666,7 @@ export default function App() {
               onConnectOpenRouter={handleConnectOpenRouter}
             />
           ) : (
-            <div className="max-w-3xl mx-auto py-4 space-y-1">
+            <div className="max-w-3xl mx-auto px-2 sm:px-4 py-4 space-y-1">
               {messages.map((msg, index) => {
                 const isLastAssistant =
                   msg.role === 'assistant' && index === messages.length - 1;
@@ -736,7 +714,6 @@ export default function App() {
         providerStatus={providerStatus}
         onConnectOpenRouter={handleConnectOpenRouter}
         onDisconnectOpenRouter={handleDisconnectOpenRouter}
-        appUrl={appUrl}
         isConnecting={isConnectingOpenRouter}
         onOpenIntegrations={() => setIsIntegrationsOpen(true)}
       />
@@ -747,18 +724,6 @@ export default function App() {
         onClose={() => setIsIntegrationsOpen(false)}
         onOpenAuth={() => setIsAuthOpen(true)}
         isAuthenticated={Boolean(user)}
-      />
-
-      {/* Google Tasks Workspace Modal */}
-      <GoogleTasksModal
-        isOpen={isTasksModalOpen}
-        onClose={() => setIsTasksModalOpen(false)}
-        tasksToken={tasksToken}
-        onTokenChange={setTasksToken}
-        onSendToChat={(prompt) => {
-          setInput(prompt);
-          handleSendMessage(prompt);
-        }}
       />
 
       {/* Auth Modal */}

@@ -54,17 +54,17 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
   onConnectOpenRouter,
 }) => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-2xl mx-auto my-auto animate-in fade-in duration-300">
+    <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:p-6 text-center max-w-2xl mx-auto my-auto animate-in fade-in duration-300">
       {/* Brand Icon */}
       <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 mb-4">
         <Sparkles className="w-6 h-6" />
       </div>
 
       <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-2">
-        Intelligent Free AI Model Routing
+        One place to chat with free AI models
       </h1>
       <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mb-6 leading-relaxed">
-        Ask anything. ModelMesh analyzes your prompt and automatically routes it to the optimal free OpenRouter model — zero configuration required.
+        Sign in, connect your OpenRouter account, and let ModelMesh choose a free model for your request. Free model availability and limits depend on OpenRouter.
       </p>
 
       {/* OpenRouter Connection Callout if disconnected */}
@@ -79,7 +79,7 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
                 Connect OpenRouter to start chatting
               </div>
               <div className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-snug">
-                One-click OAuth PKCE authorization. No manual API keys required. Exclusively uses free models.
+                Connect your own OpenRouter account securely. No API key needs to be pasted into this page.
               </div>
             </div>
           </div>

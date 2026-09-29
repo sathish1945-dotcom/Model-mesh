@@ -97,6 +97,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
       setIntegrations(data.integrations || []);
     } catch (err) {
       console.error('Failed to load integrations:', err);
+      setActionError('Could not load integrations. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -135,9 +136,14 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
       'GoogleDriveOAuth',
       `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
     );
+    if (!popup) {
+      setIsConnectingGoogleDrive(false);
+      setActionError('Allow popups for ModelMesh and try connecting again.');
+      return;
+    }
 
     const checkClosed = setInterval(() => {
-      if (popup && popup.closed) {
+      if (popup.closed) {
         clearInterval(checkClosed);
         setTimeout(() => {
           setIsConnectingGoogleDrive(false);
@@ -246,10 +252,10 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200" role="presentation">
+      <div role="dialog" aria-modal="true" aria-label="Integrations" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-none sm:rounded-2xl w-full max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40">
               <ShieldCheck className="w-5 h-5" />
@@ -264,20 +270,21 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                 Integrations
               </h2>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Manage external integrations with AES-256-GCM encrypted token storage
+                Connect accounts you choose. Credentials stay encrypted on the server.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            aria-label="Close integrations"
+            className="min-w-11 min-h-11 shrink-0 flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 px-5">
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 px-2 sm:px-5 overflow-x-auto">
           <button
             onClick={() => {
               setActiveTab('connectors');
@@ -328,7 +335,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
         )}
 
         {/* Body Content */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-4">
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {!isAuthenticated ? (
             <div className="text-center py-10 space-y-3">
               <ShieldCheck className="w-10 h-10 text-zinc-400 mx-auto" />

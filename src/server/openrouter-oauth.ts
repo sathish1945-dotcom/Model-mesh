@@ -93,6 +93,9 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
   const { code, state, error, error_description } = req.query;
 
   const renderResponse = (success: boolean, message: string) => {
+    const origin = new URL(getAppUrl(req)).origin;
+    const safeMessage = message.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
+    const payload = JSON.stringify({ type: success ? 'OAUTH_AUTH_SUCCESS' : 'OAUTH_AUTH_ERROR', provider: 'openrouter', error: success ? null : message }).replace(/</g, '\\u003c');
     return res.send(`
       <!DOCTYPE html>
       <html>
@@ -137,15 +140,11 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
         <body>
           <div class="card">
             <h2>${success ? 'Connected Successfully' : 'Connection Incomplete'}</h2>
-            <p>${message}</p>
+            <p>${safeMessage}</p>
             <script>
               try {
                 if (window.opener) {
-                  window.opener.postMessage({
-                    type: '${success ? 'OAUTH_AUTH_SUCCESS' : 'OAUTH_AUTH_ERROR'}',
-                    provider: 'openrouter',
-                    error: ${success ? 'null' : JSON.stringify(message)}
-                  }, '*');
+                  window.opener.postMessage(${payload}, ${JSON.stringify(origin)});
                   setTimeout(() => window.close(), 1200);
                 }
               } catch (e) {
@@ -153,6 +152,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
               }
             </script>
             <button class="btn" onclick="window.close()">Close Window</button>
+            <a class="btn" href="${origin}">Return to ModelMesh</a>
           </div>
         </body>
       </html>
@@ -255,4 +255,3 @@ export async function handleOpenRouterDisconnect(req: Request, res: Response) {
     message: 'OpenRouter account disconnected.',
   });
 }
-

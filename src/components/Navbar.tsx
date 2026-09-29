@@ -13,9 +13,9 @@ import {
   Brain,
   TrendingUp,
   Compass,
-  ListTodo,
   Download,
   Blocks,
+  Ellipsis,
 } from 'lucide-react';
 import type { User, ProviderConnection, AiMode } from '../types/index.ts';
 
@@ -26,9 +26,7 @@ interface NavbarProps {
   onSelectAiMode: (mode: AiMode) => void;
   onNewChat: () => void;
   onOpenSettings: () => void;
-  onOpenTasks: () => void;
   onOpenIntegrations: () => void;
-  isTasksConnected: boolean;
   onExportMarkdown?: () => void;
   hasMessagesToExport?: boolean;
   onOpenAuth: () => void;
@@ -54,9 +52,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectAiMode,
   onNewChat,
   onOpenSettings,
-  onOpenTasks,
   onOpenIntegrations,
-  isTasksConnected,
   onExportMarkdown,
   hasMessagesToExport = false,
   onOpenAuth,
@@ -66,6 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleSidebar,
 }) => {
   const [modeDropdownOpen, setModeDropdownOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -82,19 +79,19 @@ export const Navbar: React.FC<NavbarProps> = ({
   const currentModeObj = MODE_OPTIONS.find((m) => m.id === aiMode) || MODE_OPTIONS[0];
 
   return (
-    <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-3 sm:px-5 flex items-center justify-between z-30 sticky top-0 transition-colors">
+    <header className="relative min-h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-3 sm:px-5 py-2 flex flex-wrap md:flex-nowrap items-center gap-x-2 gap-y-2 justify-between z-30 sticky top-0 transition-colors">
       {/* Left: Brand & Sidebar toggle */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 min-w-0">
         <button
           onClick={onToggleSidebar}
-          className="p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors"
+          className="min-w-11 min-h-11 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors"
           title="Toggle chat history"
           aria-label="Toggle chat history"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2 cursor-pointer select-none" onClick={onNewChat}>
+        <button type="button" className="flex items-center gap-2 min-w-0 select-none" onClick={onNewChat} aria-label="ModelMesh, new chat">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
             <Bot className="w-5 h-5" />
           </div>
@@ -103,16 +100,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight text-base">
                 ModelMesh
               </span>
-              <span className="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50">
-                Free
-              </span>
             </div>
           </div>
-        </div>
+        </button>
 
         <button
           onClick={onNewChat}
-          className="hidden md:flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-lg ml-2 transition-colors"
+          className="hidden xl:flex items-center gap-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700/80 px-2.5 py-1.5 rounded-lg ml-2 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Chat</span>
@@ -120,11 +114,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Center: AI Mode Dropdown */}
-      <div className="relative" ref={dropdownRef}>
+      <div className="relative order-3 w-full md:order-none md:w-auto" ref={dropdownRef}>
         <button
           type="button"
           onClick={() => setModeDropdownOpen(!modeDropdownOpen)}
-          className="flex items-center gap-1.5 text-xs font-medium text-zinc-800 dark:text-zinc-200 bg-zinc-100/90 dark:bg-zinc-900 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-colors shadow-xs"
+          className="flex w-full md:w-auto justify-center items-center gap-1.5 min-h-10 text-xs font-medium text-zinc-800 dark:text-zinc-200 bg-zinc-100/90 dark:bg-zinc-900 hover:bg-zinc-200/80 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 transition-colors shadow-xs"
+          aria-expanded={modeDropdownOpen}
+          aria-haspopup="menu"
         >
           {currentModeObj.icon}
           <span>{currentModeObj.label}</span>
@@ -132,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         {modeDropdownOpen && (
-          <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute left-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-full md:w-64 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
             <div className="px-3 py-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
               Routing Mode
             </div>
@@ -162,12 +158,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Right: Export Markdown, Tasks, Provider status, Theme toggle, Settings, User */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 ml-auto md:ml-0">
+        <button type="button" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden min-w-11 min-h-11 flex items-center justify-center rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800" aria-label="More options" aria-expanded={mobileMenuOpen}>
+          <Ellipsis className="w-5 h-5" />
+        </button>
         {/* Export Current Chat as Markdown Button */}
         {hasMessagesToExport && onExportMarkdown && (
           <button
             onClick={onExportMarkdown}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 shadow-2xs"
+            className="hidden md:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all bg-zinc-100 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 shadow-2xs"
             title="Export chat as Markdown (.md)"
             aria-label="Export chat as Markdown"
           >
@@ -176,25 +175,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         )}
 
-        {/* Google Tasks Action Button */}
-        <button
-          onClick={onOpenTasks}
-          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all ${
-            isTasksConnected
-              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40 hover:bg-blue-100 dark:hover:bg-blue-900/60'
-              : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700'
-          }`}
-          title="Google Tasks Integration"
-        >
-          <ListTodo className="w-3.5 h-3.5 text-blue-500" />
-          <span className="hidden sm:inline">Tasks</span>
-          {isTasksConnected && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
-        </button>
-
         {/* Integrations Button */}
         <button
           onClick={onOpenIntegrations}
-          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 shadow-2xs"
+          className="hidden md:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 shadow-2xs"
           title="Settings → Integrations (Google Drive, GitHub)"
         >
           <Blocks className="w-3.5 h-3.5 text-indigo-500" />
@@ -204,7 +188,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* OpenRouter Connection Status Pill */}
         <button
           onClick={onOpenSettings}
-          className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all ${
+          className={`hidden lg:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all ${
             isConnected
               ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
               : 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40 hover:bg-amber-100 dark:hover:bg-amber-900/60'
@@ -229,7 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Theme Toggle */}
         <button
           onClick={onToggleDarkMode}
-          className="p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors"
+          className="hidden lg:flex p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors"
           title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label="Toggle theme"
         >
@@ -239,7 +223,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* Settings button */}
         <button
           onClick={onOpenSettings}
-          className="p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors"
+          className="hidden md:flex p-2 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 rounded-lg transition-colors"
           title="Provider & Routing Settings"
           aria-label="Settings"
         >
@@ -248,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* User profile or sign in */}
         {user ? (
-          <div className="flex items-center gap-1.5 pl-1 border-l border-zinc-200 dark:border-zinc-800">
+          <div className="hidden md:flex items-center gap-1.5 pl-1 border-l border-zinc-200 dark:border-zinc-800">
             <div
               className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-xs font-semibold text-zinc-800 dark:text-zinc-200 uppercase select-none"
               title={user.email}
@@ -267,12 +251,22 @@ export const Navbar: React.FC<NavbarProps> = ({
         ) : (
           <button
             onClick={onOpenAuth}
-            className="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors shadow-xs"
+            className="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 min-h-10 rounded-lg transition-colors shadow-xs"
           >
             Sign In
           </button>
         )}
       </div>
+      {mobileMenuOpen && (
+        <div className="absolute md:hidden right-3 top-14 w-60 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-50" role="menu">
+          <button className="mobile-menu-item" onClick={() => { onNewChat(); setMobileMenuOpen(false); }}><Plus className="w-4 h-4" /> New chat</button>
+          <button className="mobile-menu-item" onClick={() => { onOpenIntegrations(); setMobileMenuOpen(false); }}><Blocks className="w-4 h-4" /> Integrations</button>
+          <button className="mobile-menu-item" onClick={() => { onOpenSettings(); setMobileMenuOpen(false); }}><Settings className="w-4 h-4" /> OpenRouter settings</button>
+          {hasMessagesToExport && onExportMarkdown && <button className="mobile-menu-item" onClick={() => { onExportMarkdown(); setMobileMenuOpen(false); }}><Download className="w-4 h-4" /> Export chat</button>}
+          <button className="mobile-menu-item" onClick={() => { onToggleDarkMode(); setMobileMenuOpen(false); }}>{darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} {darkMode ? 'Light theme' : 'Dark theme'}</button>
+          {user && <button className="mobile-menu-item text-red-600" onClick={() => { onLogout(); setMobileMenuOpen(false); }}><LogOut className="w-4 h-4" /> Sign out</button>}
+        </div>
+      )}
     </header>
   );
 };

@@ -138,6 +138,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
             <h2>${success ? 'Google Drive Connected' : 'Authorization Incomplete'}</h2>
             <p>${safeMessage}</p>
             <button class="btn" onclick="window.close()">Close Window</button>
+            <a class="btn" href="${origin}">Return to ModelMesh</a>
           </div>
           <script>
             try {

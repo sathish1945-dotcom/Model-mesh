@@ -30,12 +30,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div
           onClick={onClose}
           className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-xs transition-opacity"
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar container */}
       <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-72 bg-zinc-50 dark:bg-zinc-900/90 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-transform duration-200 ease-in-out ${
+        className={`fixed md:static inset-y-0 left-0 z-50 w-[min(85vw,20rem)] md:w-72 bg-zinc-50 dark:bg-zinc-900/90 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-transform duration-200 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-72'
         } ${!isOpen ? 'md:hidden' : ''}`}
       >
@@ -53,7 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
           <button
             onClick={onClose}
-            className="md:hidden p-2 ml-2 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-lg"
+            aria-label="Close chat history"
+            className="md:hidden min-w-11 min-h-11 ml-2 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 rounded-lg"
           >
             <X className="w-4 h-4" />
           </button>
@@ -75,24 +77,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               return (
                 <div
                   key={chat.id}
-                  onClick={() => {
-                    onSelectChat(chat.id);
-                    if (window.innerWidth < 768) onClose();
-                  }}
-                  className={`group relative flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer text-xs font-medium transition-colors ${
+                  className={`group relative flex items-center justify-between pl-1 pr-2 py-1 rounded-lg text-xs font-medium transition-colors ${
                     isActive
                       ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
                       : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate pr-2">
+                  <button type="button" onClick={() => {
+                    onSelectChat(chat.id);
+                    if (window.innerWidth < 768) onClose();
+                  }} className="flex flex-1 min-w-0 min-h-10 items-center gap-2.5 truncate px-2 text-left" aria-current={isActive ? 'page' : undefined}>
                     <MessageSquare
                       className={`w-3.5 h-3.5 shrink-0 ${
                         isActive ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400'
                       }`}
                     />
                     <span className="truncate">{chat.title || 'Untitled Chat'}</span>
-                  </div>
+                  </button>
 
                   {/* Actions: Export & Delete */}
                   <div className="flex items-center gap-1 shrink-0">
@@ -102,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           e.stopPropagation();
                           onExportChat(chat.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700 rounded transition-all"
+                    className="opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/60 dark:hover:bg-zinc-700 rounded transition-all"
                         title="Export as Markdown (.md)"
                         aria-label="Export chat as Markdown"
                       >
@@ -114,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         e.stopPropagation();
                         onDeleteChat(chat.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-all"
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-all"
                       title="Delete conversation"
                       aria-label="Delete conversation"
                     >
