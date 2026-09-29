@@ -101,7 +101,7 @@ export class VercelConnector implements Connector {
       const providerAccountId = String(userObj.id);
 
       const encrypted = encryptCredential(token);
-      db.saveProviderConnection(userId, 'vercel', encrypted, 'connected', {
+      await db.saveProviderConnection(userId, 'vercel', encrypted, 'connected', {
         providerAccountId,
         accountUsername: username,
         scopes: 'projects,deployments,logs',
@@ -111,7 +111,7 @@ export class VercelConnector implements Connector {
         },
       });
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'vercel',
         action: 'connect',
@@ -127,7 +127,7 @@ export class VercelConnector implements Connector {
         providerAccountId,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'vercel',
         action: 'connect',
@@ -140,8 +140,8 @@ export class VercelConnector implements Connector {
   }
 
   async disconnect(userId: string): Promise<void> {
-    db.disconnectProvider(userId, 'vercel');
-    recordAuditLog({
+    await db.disconnectProvider(userId, 'vercel');
+    await recordAuditLog({
       userId,
       provider: 'vercel',
       action: 'disconnect',
@@ -152,7 +152,7 @@ export class VercelConnector implements Connector {
   }
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = db.getProviderConnection(userId, 'vercel');
+    const conn = await db.getProviderConnection(userId, 'vercel');
     if (!conn || conn.connection_status !== 'connected' || !conn.encrypted_credential) {
       return { connected: false };
     }
@@ -202,7 +202,7 @@ export class VercelConnector implements Connector {
       };
     }
 
-    const conn = db.getProviderConnection(userId, 'vercel');
+    const conn = await db.getProviderConnection(userId, 'vercel');
     if (!conn || !conn.encrypted_credential) {
       return {
         success: false,
@@ -387,7 +387,7 @@ export class VercelConnector implements Connector {
           throw new Error(`Unhandled Vercel action: ${actionName}`);
       }
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'vercel',
         action: actionName,
@@ -404,7 +404,7 @@ export class VercelConnector implements Connector {
         permissionLevel: cap.permissionLevel,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'vercel',
         action: actionName,

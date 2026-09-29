@@ -37,7 +37,7 @@ export class ConnectorRegistry {
   }
 
   async getSummaries(userId: string): Promise<IntegrationSummary[]> {
-    const userConns = db.getAllProviderConnections(userId);
+    const userConns = await db.getAllProviderConnections(userId);
     const summaries: IntegrationSummary[] = [];
 
     // The integrations architecture for this phase focuses on Google Drive and GitHub

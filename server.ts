@@ -28,6 +28,8 @@ import {
 import { handleChatStream } from './src/server/chat-service.ts';
 import { chatRateLimit, apiRateLimit } from './src/server/rate-limit.ts';
 import { validateAndGetEncryptionKey } from './src/server/encryption.ts';
+import { connectorRegistry } from './src/server/plugins/registry.ts';
+import { handleGoogleDriveConnect, handleGoogleDriveCallback } from './src/server/plugins/google-drive-oauth.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -234,6 +236,22 @@ app.get('/api/openrouter/connect', requireAuth, asyncRoute(handleOpenRouterConne
 app.get(['/api/openrouter/callback', '/api/openrouter/callback/'], asyncRoute(handleOpenRouterCallback));
 app.get('/api/openrouter/status', requireAuth, asyncRoute(handleOpenRouterStatus));
 app.post('/api/openrouter/disconnect', requireAuth, asyncRoute(handleOpenRouterDisconnect));
+
+// --- Google Drive integrations (all account data is scoped to the session user) ---
+app.get('/api/integrations', requireAuth, asyncRoute(async (req, res) => {
+  res.json({ integrations: await connectorRegistry.getSummaries((req as any).user.id) });
+}));
+app.get('/api/integrations/audit-logs', requireAuth, asyncRoute(async (req, res) => {
+  res.json({ logs: await db.getAuditLogs((req as any).user.id) });
+}));
+app.get('/api/integrations/google-drive/connect', requireAuth, asyncRoute(handleGoogleDriveConnect));
+app.get('/api/integrations/google-drive/callback', asyncRoute(handleGoogleDriveCallback));
+app.post('/api/integrations/google-drive/disconnect', requireAuth, asyncRoute(async (req, res) => {
+  const connector = connectorRegistry.getConnector('google-drive');
+  if (!connector) return res.status(503).json({ error: 'Google Drive connector unavailable' });
+  await connector.disconnect((req as any).user.id);
+  res.json({ success: true });
+}));
 
 // --- Chat History Routes ---
 app.get('/api/chats', requireAuth, asyncRoute(async (req, res) => {

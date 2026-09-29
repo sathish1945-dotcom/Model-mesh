@@ -3,8 +3,8 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import pg from 'pg';
 import { getDatabaseUrl } from './env.ts';
-import type { DBUser, DBProviderConnection, DBOAuthState } from './db.ts';
-import type { Chat, ChatMessage } from '../types/index.ts';
+import type { DBUser, DBProviderConnection, DBOAuthState, ConnectionOptions } from './db.ts';
+import type { Chat, ChatMessage, IntegrationProvider, AuditLogEntry } from '../types/index.ts';
 
 // Each query uses PostgreSQL as the source of truth. Never cache user data or
 // acknowledge a write before it commits: function instances do not share memory.
@@ -53,23 +53,44 @@ export class PostgresDatabase {
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
       [crypto.randomUUID(), user.email.trim().toLowerCase(), user.name, user.password_hash || null, user.auth_provider || 'email']))[0];
   }
-  async getProviderConnection(userId: string, provider: 'openrouter' = 'openrouter') {
+  async getProviderConnection(userId: string, provider: IntegrationProvider = 'openrouter') {
     return (await this.rows<DBProviderConnection>(
       `SELECT * FROM modelmesh_provider_connections WHERE user_id=$1 AND provider=$2 AND connection_status='connected'`, [userId, provider]))[0];
   }
-  async getAnyProviderConnection(userId: string, provider: 'openrouter' = 'openrouter') {
+  async getAnyProviderConnection(userId: string, provider: IntegrationProvider = 'openrouter') {
     return (await this.rows<DBProviderConnection>('SELECT * FROM modelmesh_provider_connections WHERE user_id=$1 AND provider=$2', [userId, provider]))[0];
   }
-  async saveProviderConnection(userId: string, provider: 'openrouter', encryptedCredential: string, status: 'connected' | 'disconnected' | 'error' = 'connected') {
+  async saveProviderConnection(userId: string, provider: IntegrationProvider, encryptedCredential: string, status: 'connected' | 'disconnected' | 'error' = 'connected', options: ConnectionOptions = {}) {
     return (await this.rows<DBProviderConnection>(
-      `INSERT INTO modelmesh_provider_connections (id,user_id,provider,encrypted_credential,connection_status)
-       VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id,provider) DO UPDATE SET
+      `INSERT INTO modelmesh_provider_connections (id,user_id,provider,encrypted_credential,connection_status,provider_account_id,account_username,scopes,encrypted_refresh_token,token_expiry,metadata)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) ON CONFLICT (user_id,provider) DO UPDATE SET
        encrypted_credential=EXCLUDED.encrypted_credential, connection_status=EXCLUDED.connection_status,
-       updated_at=NOW() RETURNING *`, [crypto.randomUUID(),userId,provider,encryptedCredential,status]))[0];
+       provider_account_id=COALESCE(EXCLUDED.provider_account_id,modelmesh_provider_connections.provider_account_id),
+       account_username=COALESCE(EXCLUDED.account_username,modelmesh_provider_connections.account_username),
+       scopes=COALESCE(EXCLUDED.scopes,modelmesh_provider_connections.scopes),
+       encrypted_refresh_token=COALESCE(EXCLUDED.encrypted_refresh_token,modelmesh_provider_connections.encrypted_refresh_token),
+       token_expiry=COALESCE(EXCLUDED.token_expiry,modelmesh_provider_connections.token_expiry),
+       metadata=COALESCE(EXCLUDED.metadata,modelmesh_provider_connections.metadata),
+       updated_at=NOW() RETURNING *`, [crypto.randomUUID(),userId,provider,encryptedCredential,status,
+       options.providerAccountId || null,options.accountUsername || null,options.scopes || null,
+       options.encryptedRefreshToken || null,options.tokenExpiry || null,options.metadata ? JSON.stringify(options.metadata) : null]))[0];
   }
-  async disconnectProvider(userId: string, provider: 'openrouter') {
+  async disconnectProvider(userId: string, provider: IntegrationProvider) {
     return (await this.rows(`UPDATE modelmesh_provider_connections SET connection_status='disconnected',
-      encrypted_credential=NULL, updated_at=NOW() WHERE user_id=$1 AND provider=$2 RETURNING id`, [userId,provider])).length > 0;
+      encrypted_credential=NULL, encrypted_refresh_token=NULL, updated_at=NOW() WHERE user_id=$1 AND provider=$2 RETURNING id`, [userId,provider])).length > 0;
+  }
+  async getAllProviderConnections(userId: string) {
+    return this.rows<DBProviderConnection>('SELECT * FROM modelmesh_provider_connections WHERE user_id=$1', [userId]);
+  }
+  async createAuditLog(entry: Omit<AuditLogEntry, 'id' | 'created_at'>) {
+    return (await this.rows<AuditLogEntry>(`INSERT INTO modelmesh_audit_logs
+      (id,user_id,provider,action,resource,permission_level,status,approval_status,details)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [crypto.randomUUID(),entry.user_id,entry.provider,entry.action,entry.resource || null,
+       entry.permission_level,entry.status,entry.approval_status || null,entry.details ? JSON.stringify(entry.details) : null]))[0];
+  }
+  async getAuditLogs(userId: string) {
+    return this.rows<AuditLogEntry>('SELECT * FROM modelmesh_audit_logs WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100', [userId]);
   }
   async saveOAuthState(state: string, codeVerifier: string, userId: string) {
     await this.rows(`INSERT INTO modelmesh_oauth_states (state,code_verifier,user_id,expires_at)

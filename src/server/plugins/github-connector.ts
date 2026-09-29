@@ -125,7 +125,7 @@ export class GitHubConnector implements Connector {
 
       // Encrypt and persist
       const encrypted = encryptCredential(token);
-      db.saveProviderConnection(userId, 'github', encrypted, 'connected', {
+      await db.saveProviderConnection(userId, 'github', encrypted, 'connected', {
         providerAccountId,
         accountUsername: username,
         scopes: 'repo,read:org',
@@ -136,7 +136,7 @@ export class GitHubConnector implements Connector {
         },
       });
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'github',
         action: 'connect',
@@ -152,7 +152,7 @@ export class GitHubConnector implements Connector {
         providerAccountId,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'github',
         action: 'connect',
@@ -165,8 +165,8 @@ export class GitHubConnector implements Connector {
   }
 
   async disconnect(userId: string): Promise<void> {
-    db.disconnectProvider(userId, 'github');
-    recordAuditLog({
+    await db.disconnectProvider(userId, 'github');
+    await recordAuditLog({
       userId,
       provider: 'github',
       action: 'disconnect',
@@ -177,7 +177,7 @@ export class GitHubConnector implements Connector {
   }
 
   async getConnectionStatus(userId: string): Promise<ConnectionStatus> {
-    const conn = db.getProviderConnection(userId, 'github');
+    const conn = await db.getProviderConnection(userId, 'github');
     if (!conn || conn.connection_status !== 'connected' || !conn.encrypted_credential) {
       return { connected: false };
     }
@@ -229,7 +229,7 @@ export class GitHubConnector implements Connector {
     }
 
     // Retrieve decrypted token
-    const conn = db.getProviderConnection(userId, 'github');
+    const conn = await db.getProviderConnection(userId, 'github');
     if (!conn || !conn.encrypted_credential) {
       return {
         success: false,
@@ -515,7 +515,7 @@ export class GitHubConnector implements Connector {
           throw new Error(`Unhandled GitHub action: ${actionName}`);
       }
 
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'github',
         action: actionName,
@@ -532,7 +532,7 @@ export class GitHubConnector implements Connector {
         permissionLevel: cap.permissionLevel,
       };
     } catch (err: any) {
-      recordAuditLog({
+      await recordAuditLog({
         userId,
         provider: 'github',
         action: actionName,

@@ -14,7 +14,20 @@ function base64UrlEncode(buffer: Buffer): string {
 }
 
 export function getGoogleClientId(): string {
-  return process.env.GOOGLE_CLIENT_ID || '885739506439-2fok3opj8bgnja02at0e9ghs62hbjpju.apps.googleusercontent.com';
+  if (!process.env.GOOGLE_CLIENT_ID) throw new Error('GOOGLE_CLIENT_ID is required');
+  return process.env.GOOGLE_CLIENT_ID;
+}
+
+function getDriveAppUrl(req: Request): string {
+  if (process.env.NODE_ENV === 'production' && !process.env.APP_URL) {
+    throw new Error('APP_URL is required for Google Drive OAuth in production');
+  }
+  const appUrl = getAppUrl(req);
+  const url = new URL(appUrl);
+  if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+    throw new Error('APP_URL must use HTTPS in production');
+  }
+  return url.origin;
 }
 
 /**
@@ -33,9 +46,9 @@ export async function handleGoogleDriveConnect(req: Request, res: Response) {
     const codeChallenge = base64UrlEncode(crypto.createHash('sha256').update(codeVerifier).digest());
 
     // Save CSRF state and PKCE verifier linked to this user
-    db.saveOAuthState(state, codeVerifier, user.id);
+    await db.saveOAuthState(state, codeVerifier, user.id);
 
-    const appUrl = getAppUrl(req);
+    const appUrl = getDriveAppUrl(req);
     const redirectUri = `${appUrl}/api/integrations/google-drive/callback`;
     const clientId = getGoogleClientId();
 
@@ -76,6 +89,9 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
   const { code, state, error, error_description } = req.query;
 
   const renderPopupResult = (success: boolean, message: string) => {
+    const safeMessage = message.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
+    const origin = getDriveAppUrl(req);
+    const safePayload = JSON.stringify({ type: success ? 'GOOGLE_DRIVE_OAUTH_SUCCESS' : 'GOOGLE_DRIVE_OAUTH_ERROR', message }).replace(/</g, '\\u003c');
     return res.send(`
       <!DOCTYPE html>
       <html>
@@ -120,16 +136,14 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
         <body>
           <div class="card">
             <h2>${success ? 'Google Drive Connected' : 'Authorization Incomplete'}</h2>
-            <p>${message}</p>
+            <p>${safeMessage}</p>
             <button class="btn" onclick="window.close()">Close Window</button>
+            <a class="btn" href="${origin}">Return to ModelMesh</a>
           </div>
           <script>
             try {
               if (window.opener) {
-                window.opener.postMessage({
-                  type: '${success ? 'GOOGLE_DRIVE_OAUTH_SUCCESS' : 'GOOGLE_DRIVE_OAUTH_ERROR'}',
-                  message: ${JSON.stringify(message)}
-                }, '*');
+                window.opener.postMessage(${safePayload}, ${JSON.stringify(origin)});
                 setTimeout(() => window.close(), 1200);
               }
             } catch (e) {
@@ -153,7 +167,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
   }
 
   // Validate and consume state atomically to prevent replay attacks
-  const oauthState = db.consumeOAuthState(state);
+  const oauthState = await db.consumeOAuthState(state);
   if (!oauthState) {
     return renderPopupResult(
       false,
@@ -165,10 +179,11 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
   const codeVerifier = oauthState.code_verifier;
 
   try {
-    const appUrl = getAppUrl(req);
+    const appUrl = getDriveAppUrl(req);
     const redirectUri = `${appUrl}/api/integrations/google-drive/callback`;
     const clientId = getGoogleClientId();
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!clientSecret) return renderPopupResult(false, 'Google Drive OAuth is not configured on the server.');
 
     const tokenParams: Record<string, string> = {
       client_id: clientId,

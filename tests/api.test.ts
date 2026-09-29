@@ -86,3 +86,20 @@ test('frontend gives a useful error for a plain-text Vercel error', async () => 
     status: 404, headers: { 'Content-Type': 'text/plain' },
   })), /HTTP 404/);
 });
+
+test('integrations require a session and show only user scoped connections', async () => {
+  assert.equal((await fetch(base + '/api/integrations')).status, 401);
+  assert.equal((await fetch(base + '/api/integrations/audit-logs')).status, 401);
+  assert.equal((await fetch(base + '/api/integrations/google-drive/connect')).status, 401);
+  const registered = await post('/api/auth/register', {
+    email: 'drive@example.com', password: 'test-password-only', name: 'Drive tester',
+  });
+  const cookie = registered.headers.get('set-cookie')!.split(';')[0];
+  const response = await fetch(base + '/api/integrations', { headers: { Cookie: cookie } });
+  assert.equal(response.status, 200);
+  const { integrations } = await response.json();
+  assert.equal(integrations.find((item: any) => item.provider === 'google-drive').connectionStatus, 'disconnected');
+  assert.equal(integrations.find((item: any) => item.provider === 'github').connectionStatus, 'coming_soon');
+  assert.deepEqual((await (await fetch(base + '/api/integrations/audit-logs', { headers: { Cookie: cookie } })).json()).logs, []);
+  assert.equal((await fetch(base + '/api/integrations/google-drive/callback?state=invalid&code=invalid')).status, 200);
+});

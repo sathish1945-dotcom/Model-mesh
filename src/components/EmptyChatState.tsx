@@ -1,15 +1,6 @@
 import React from 'react';
-import {
-  Sparkles,
-  Code,
-  Brain,
-  TrendingUp,
-  Compass,
-  ArrowRight,
-  Key,
-  ShieldCheck,
-} from 'lucide-react';
-import type { TaskCategory } from '../types/index.ts';
+import { Code, Brain, TrendingUp, Compass, ArrowUpRight } from 'lucide-react';
+import { ModelMeshLogo } from './ModelMeshLogo.tsx';
 
 interface EmptyChatStateProps {
   onSelectPrompt: (text: string) => void;
@@ -17,35 +8,11 @@ interface EmptyChatStateProps {
   onConnectOpenRouter: () => void;
 }
 
-const SAMPLE_PROMPTS = [
-  {
-    category: 'coding' as TaskCategory,
-    title: 'Coding Task',
-    label: 'Python / React / Debug',
-    icon: <Code className="w-4 h-4 text-emerald-500" />,
-    prompt: 'Write a TypeScript debounce function with immediate execution support and unit test cases.',
-  },
-  {
-    category: 'reasoning' as TaskCategory,
-    title: 'Complex Reasoning',
-    label: 'Architecture & Logic',
-    icon: <Brain className="w-4 h-4 text-purple-500" />,
-    prompt: 'Compare SQLite with PostgreSQL for a high-concurrency microservice. Provide trade-offs.',
-  },
-  {
-    category: 'finance' as TaskCategory,
-    title: 'Finance Query',
-    label: 'Valuation & Metrics',
-    icon: <TrendingUp className="w-4 h-4 text-amber-500" />,
-    prompt: 'Explain the difference between Enterprise Value and Equity Value. When is EV/EBITDA preferred?',
-  },
-  {
-    category: 'general' as TaskCategory,
-    title: 'General Query',
-    label: 'Everyday Assistance',
-    icon: <Compass className="w-4 h-4 text-blue-500" />,
-    prompt: 'Summarize the core principles of effective asynchronous communication in remote engineering teams.',
-  },
+const SUGGESTIONS = [
+  { label: 'Write and debug code', icon: Code, prompt: 'Write a TypeScript debounce function with immediate execution support and unit test cases.' },
+  { label: 'Think through a decision', icon: Brain, prompt: 'Compare SQLite with PostgreSQL for a high-concurrency microservice. Provide trade-offs.' },
+  { label: 'Understand a finance term', icon: TrendingUp, prompt: 'Explain the difference between Enterprise Value and Equity Value. When is EV/EBITDA preferred?' },
+  { label: 'Summarize an idea', icon: Compass, prompt: 'Summarize the core principles of effective asynchronous communication in remote engineering teams.' },
 ];
 
 export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
@@ -54,65 +21,20 @@ export const EmptyChatState: React.FC<EmptyChatStateProps> = ({
   onConnectOpenRouter,
 }) => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-2xl mx-auto my-auto animate-in fade-in duration-300">
-      {/* Brand Icon */}
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 mb-4">
-        <Sparkles className="w-6 h-6" />
-      </div>
-
-      <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 mb-2">
-        Intelligent Free AI Model Routing
-      </h1>
-      <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mb-6 leading-relaxed">
-        Ask anything. ModelMesh analyzes your prompt and automatically routes it to the optimal free OpenRouter model — zero configuration required.
-      </p>
-
-      {/* OpenRouter Connection Callout if disconnected */}
+    <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 pt-10 pb-8 text-center sm:pt-20">
+      <ModelMeshLogo className="w-12 h-12 mb-5 shadow-lg rounded-2xl shadow-indigo-500/15" />
+      <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">What can I help with?</h1>
+      <p className="mt-2 max-w-md text-sm leading-6 text-zinc-500 dark:text-zinc-400">ModelMesh selects an available free model for your question.</p>
       {!isConnected && (
-        <div className="w-full mb-8 p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
-              <Key className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                Connect OpenRouter to start chatting
-              </div>
-              <div className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-snug">
-                One-click OAuth PKCE authorization. No manual API keys required. Exclusively uses free models.
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={onConnectOpenRouter}
-            className="w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-semibold shrink-0 shadow-xs transition-colors flex items-center justify-center gap-1.5"
-          >
-            <span>Connect OpenRouter</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button type="button" onClick={onConnectOpenRouter} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-medium text-white hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">
+          Connect OpenRouter <ArrowUpRight className="w-4 h-4" />
+        </button>
       )}
-
-      {/* Suggested Prompts Grid */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
-        {SAMPLE_PROMPTS.map((item, idx) => (
-          <button
-            key={idx}
-            onClick={() => onSelectPrompt(item.prompt)}
-            className="group p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 hover:border-blue-400/40 dark:hover:border-blue-500/40 text-left transition-all shadow-xs flex flex-col justify-between"
-          >
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="p-1 rounded-md bg-zinc-100 dark:bg-zinc-800">{item.icon}</div>
-              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                {item.title}
-              </span>
-              <span className="text-[10px] text-zinc-400 font-medium ml-auto">
-                {item.label}
-              </span>
-            </div>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-              "{item.prompt}"
-            </p>
+      {!isConnected && <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Use your own account. Free model limits depend on OpenRouter.</p>}
+      <div className="mt-10 grid w-full grid-cols-2 gap-2 sm:gap-3 text-left">
+        {SUGGESTIONS.map(({ label, icon: Icon, prompt }) => (
+          <button key={label} type="button" onClick={() => onSelectPrompt(prompt)} className="flex min-h-16 items-center gap-2.5 rounded-2xl border border-zinc-200 bg-white px-3 py-3 text-left text-xs sm:text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 hover:border-indigo-300 focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
+            <Icon className="h-4 w-4 shrink-0 text-indigo-500" />{label}
           </button>
         ))}
       </div>
