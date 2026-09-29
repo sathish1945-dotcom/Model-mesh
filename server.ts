@@ -28,6 +28,8 @@ import {
 import { handleChatStream } from './src/server/chat-service.ts';
 import { chatRateLimit, apiRateLimit } from './src/server/rate-limit.ts';
 import { validateAndGetEncryptionKey } from './src/server/encryption.ts';
+import { decryptCredential } from './src/server/encryption.ts';
+import { getFreeChatModels } from './src/server/model-registry.ts';
 import { connectorRegistry } from './src/server/plugins/registry.ts';
 import { handleGoogleDriveConnect, handleGoogleDriveCallback } from './src/server/plugins/google-drive-oauth.ts';
 
@@ -236,6 +238,23 @@ app.get('/api/openrouter/connect', requireAuth, asyncRoute(handleOpenRouterConne
 app.get(['/api/openrouter/callback', '/api/openrouter/callback/'], asyncRoute(handleOpenRouterCallback));
 app.get('/api/openrouter/status', requireAuth, asyncRoute(handleOpenRouterStatus));
 app.post('/api/openrouter/disconnect', requireAuth, asyncRoute(handleOpenRouterDisconnect));
+
+app.get('/api/models', asyncRoute(async (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300');
+  res.json({ models: await getFreeChatModels() });
+}));
+app.get('/api/models/usage', requireAuth, asyncRoute(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const conn = await db.getProviderConnection((req as any).user.id, 'openrouter');
+  if (!conn?.encrypted_credential) return res.status(409).json({ error: 'Connect OpenRouter to see usage.' });
+  const response = await fetch('https://openrouter.ai/api/v1/key', {
+    headers: { Authorization: `Bearer ${decryptCredential(conn.encrypted_credential)}` },
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!response.ok) return res.status(502).json({ error: 'OpenRouter usage is temporarily unavailable.' });
+  const payload = await response.json() as { data?: { free_model_daily_requests?: { used: number; limit: number; remaining: number } } };
+  res.json({ daily: payload.data?.free_model_daily_requests ?? null });
+}));
 
 // --- Google Drive integrations (all account data is scoped to the session user) ---
 app.get('/api/integrations', requireAuth, asyncRoute(async (req, res) => {
