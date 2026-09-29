@@ -212,7 +212,11 @@ export async function handleChatStream(req: Request, res: Response) {
         // 3. HTTP 429: Rate limited
         if (openRouterRes.status === 429) {
           const retryAfterHeader = openRouterRes.headers.get('retry-after');
-          const isAccountQuota = errorText.toLowerCase().includes('quota') || errorText.toLowerCase().includes('credit');
+          // Provider capacity and account quotas share HTTP 429. Keep the
+          // distinction visible so users are not told to buy credits for an
+          // upstream outage.
+          const isUpstreamLimit = /temporarily rate-limited upstream|provider returned error|provider_code/i.test(errorText);
+          const isAccountQuota = !isUpstreamLimit && /daily limit|quota|credit|free.model.*limit/i.test(errorText);
 
           // If account-wide quota error, stop the fallback cascade immediately
           if (isAccountQuota) {
@@ -236,7 +240,9 @@ export async function handleChatStream(req: Request, res: Response) {
           const waitSecs = retryAfterHeader ? `${retryAfterHeader}s` : 'a few moments';
           sendEvent({
             type: 'error',
-            error: `OpenRouter rate limit reached. Please wait ${waitSecs} before trying again.`,
+            error: isUpstreamLimit
+              ? `Free model providers are temporarily busy. Please wait ${waitSecs} and try again.`
+              : `OpenRouter request limit reached. Please wait ${waitSecs} before trying again.`,
           });
           res.end();
           return;
