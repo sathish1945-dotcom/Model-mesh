@@ -5,6 +5,7 @@ import { classifyPrompt } from './task-classifier.ts';
 import { resolveModelRoute } from './model-router.ts';
 import { validatePrompt } from './rate-limit.ts';
 import { getAppUrl } from './openrouter-oauth.ts';
+import { routeToolIntent } from './plugins/intent-router.ts';
 import type { TaskCategory, AiMode } from '../types/index.ts';
 
 const USER_QUOTA_ERROR_MESSAGE =
@@ -99,12 +100,43 @@ export async function handleChatStream(req: Request, res: Response) {
     chatId,
   });
 
+  // 6. Developer Tool Intent & Plugin Telemetry
+  let toolResolution;
+  try {
+    toolResolution = await routeToolIntent(cleanPrompt, user.id);
+    if (toolResolution.hasIntent) {
+      if (toolResolution.requiresConnection) {
+        sendEvent({
+          type: 'tool_requirement',
+          unconnectedProviders: toolResolution.unconnectedProviders,
+          message: toolResolution.summaryMessage,
+        });
+      }
+      if (toolResolution.actionProposal) {
+        sendEvent({
+          type: 'action_proposal',
+          proposal: toolResolution.actionProposal,
+        });
+      }
+    }
+  } catch (err: any) {
+    console.warn('[Tool Router] Error evaluating intent:', err?.message || err);
+  }
+
   // Prepare full conversation messages for OpenRouter
   const history = await db.getChatMessages(chatId);
   const contextMessages: MessageParam[] = history.map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
+  // If live telemetry/inspection data was gathered, augment the prompt context
+  if (toolResolution?.toolContextPrompt) {
+    const lastUserMsg = contextMessages[contextMessages.length - 1];
+    if (lastUserMsg && lastUserMsg.role === 'user') {
+      lastUserMsg.content += toolResolution.toolContextPrompt;
+    }
+  }
 
   // Models to attempt: [primaryModel, ...fallbackModels]
   const modelsToTry = [routeResolution.selectedModel, ...routeResolution.fallbackModels];
@@ -119,11 +151,19 @@ export async function handleChatStream(req: Request, res: Response) {
     const isFallback = i > 0;
 
     if (isFallback) {
+      // If previous model already emitted partial tokens before failing,
+      // reset fullAssistantResponse so fallback starts cleanly from scratch.
+      const hadPartial = fullAssistantResponse.length > 0;
+      if (hadPartial) {
+        fullAssistantResponse = '';
+      }
+
       sendEvent({
         type: 'fallback_switch',
         previousModel: modelsToTry[i - 1],
         activeModel: currentModel,
         category: classification.category,
+        resetContent: hadPartial,
       });
     }
 
@@ -146,14 +186,20 @@ export async function handleChatStream(req: Request, res: Response) {
 
       if (!openRouterRes.ok) {
         const errorText = await openRouterRes.text();
-        console.warn(`[Chat] Model ${currentModel} returned ${openRouterRes.status}:`, errorText.slice(0, 150));
+        console.warn(`[Chat] Model ${currentModel} returned HTTP ${openRouterRes.status}:`, errorText.slice(0, 160));
 
-        // If rate limit or credits or unavailable, try next fallback model
-        if (openRouterRes.status === 429 || openRouterRes.status === 402 || openRouterRes.status === 503 || openRouterRes.status === 404) {
-          if (i < modelsToTry.length - 1) {
-            continue; // Try next fallback model
-          }
-          // If all failed and status is 429 or 402:
+        // 1. HTTP 401: Invalid / Expired credentials. Stop cascade immediately.
+        if (openRouterRes.status === 401) {
+          sendEvent({
+            type: 'error',
+            error: 'OpenRouter authorization failed. Please reconnect your OpenRouter account.',
+          });
+          res.end();
+          return;
+        }
+
+        // 2. HTTP 402: Account-wide credit or quota required. Stop cascade immediately.
+        if (openRouterRes.status === 402) {
           sendEvent({
             type: 'error',
             error: USER_QUOTA_ERROR_MESSAGE,
@@ -162,14 +208,49 @@ export async function handleChatStream(req: Request, res: Response) {
           return;
         }
 
-        // Other API error - try fallback if available
+        // 3. HTTP 429: Rate limited
+        if (openRouterRes.status === 429) {
+          const retryAfterHeader = openRouterRes.headers.get('retry-after');
+          const isAccountQuota = errorText.toLowerCase().includes('quota') || errorText.toLowerCase().includes('credit');
+
+          // If account-wide quota error, stop the fallback cascade immediately
+          if (isAccountQuota) {
+            sendEvent({
+              type: 'error',
+              error: USER_QUOTA_ERROR_MESSAGE,
+            });
+            res.end();
+            return;
+          }
+
+          // If retry-after is provided or we can try a fallback model
+          if (i < modelsToTry.length - 1) {
+            const waitTime = retryAfterHeader ? Math.min(parseInt(retryAfterHeader, 10) * 1000, 2000) : 500;
+            if (waitTime > 0 && !isNaN(waitTime)) {
+              await new Promise((r) => setTimeout(r, waitTime));
+            }
+            continue;
+          }
+
+          const waitSecs = retryAfterHeader ? `${retryAfterHeader}s` : 'a few moments';
+          sendEvent({
+            type: 'error',
+            error: `OpenRouter rate limit reached. Please wait ${waitSecs} before trying again.`,
+          });
+          res.end();
+          return;
+        }
+
+        // 4. HTTP 404 / 503 / 502 / 500: Model discontinued, overloaded, or server error.
+        // Try next fallback if attempts remaining.
         if (i < modelsToTry.length - 1) {
           continue;
         }
 
+        // Exhausted attempts without successful response
         sendEvent({
           type: 'error',
-          error: 'An issue occurred while processing your request. Please try again.',
+          error: 'The free AI model service is momentarily unavailable. Please retry in a few moments.',
         });
         res.end();
         return;
@@ -185,6 +266,7 @@ export async function handleChatStream(req: Request, res: Response) {
       const reader = body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
+      let modelStreamedText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -206,12 +288,43 @@ export async function handleChatStream(req: Request, res: Response) {
 
             try {
               const parsed = JSON.parse(dataStr);
-              const textChunk = parsed.choices?.[0]?.delta?.content || '';
-              if (textChunk) {
-                fullAssistantResponse += textChunk;
+              if (parsed.error) {
+                console.warn(`[Chat] OpenRouter stream error from ${currentModel}:`, parsed.error);
+                continue;
+              }
+
+              const choice = parsed.choices?.[0];
+              if (!choice) continue;
+
+              // Extract text safely without ever combining delta and text
+              let rawChunk = '';
+              if (typeof choice.delta?.content === 'string') {
+                rawChunk = choice.delta.content;
+              } else if (Array.isArray(choice.delta?.content)) {
+                rawChunk = choice.delta.content
+                  .map((p: any) => (typeof p === 'string' ? p : p?.text || ''))
+                  .join('');
+              } else if (typeof choice.text === 'string' && !choice.delta) {
+                rawChunk = choice.text;
+              }
+
+              if (!rawChunk) continue;
+
+              // Check if rawChunk is an accumulated snapshot rather than incremental delta.
+              // If it starts with modelStreamedText, provider sent cumulative content.
+              let delta = rawChunk;
+              if (modelStreamedText && rawChunk.startsWith(modelStreamedText)) {
+                delta = rawChunk.slice(modelStreamedText.length);
+              } else if (modelStreamedText && rawChunk === modelStreamedText) {
+                delta = '';
+              }
+
+              if (delta) {
+                modelStreamedText += delta;
+                fullAssistantResponse += delta;
                 sendEvent({
                   type: 'chunk',
-                  text: textChunk,
+                  text: delta,
                 });
               }
             } catch {
@@ -226,8 +339,8 @@ export async function handleChatStream(req: Request, res: Response) {
       break; // Successfully streamed!
     } catch (err: any) {
       console.warn(`[Chat] Error with model ${currentModel}:`, err?.message || err);
-      // If we haven't streamed content yet, try next fallback
-      if (!fullAssistantResponse && i < modelsToTry.length - 1) {
+      // If we haven't completed streaming and fallback models remain, allow next fallback
+      if (i < modelsToTry.length - 1) {
         continue;
       }
       break;

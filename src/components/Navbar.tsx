@@ -15,6 +15,7 @@ import {
   Compass,
   ListTodo,
   Download,
+  Blocks,
 } from 'lucide-react';
 import type { User, ProviderConnection, AiMode } from '../types/index.ts';
 
@@ -26,6 +27,7 @@ interface NavbarProps {
   onNewChat: () => void;
   onOpenSettings: () => void;
   onOpenTasks: () => void;
+  onOpenIntegrations: () => void;
   isTasksConnected: boolean;
   onExportMarkdown?: () => void;
   hasMessagesToExport?: boolean;
@@ -53,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onNewChat,
   onOpenSettings,
   onOpenTasks,
+  onOpenIntegrations,
   isTasksConnected,
   onExportMarkdown,
   hasMessagesToExport = false,
@@ -186,6 +189,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           <ListTodo className="w-3.5 h-3.5 text-blue-500" />
           <span className="hidden sm:inline">Tasks</span>
           {isTasksConnected && <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />}
+        </button>
+
+        {/* Integrations Button */}
+        <button
+          onClick={onOpenIntegrations}
+          className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full font-medium transition-all bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 shadow-2xs"
+          title="Settings → Integrations (Google Drive, GitHub)"
+        >
+          <Blocks className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="hidden sm:inline">Integrations</span>
         </button>
 
         {/* OpenRouter Connection Status Pill */}

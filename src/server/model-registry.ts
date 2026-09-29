@@ -9,7 +9,7 @@ export interface CategoryModelConfig {
   secondaryModel: string;
 }
 
-export const OPENROUTER_FREE_ROUTER_FALLBACK = 'openrouter/auto:free';
+export const OPENROUTER_FREE_ROUTER_FALLBACK = 'openrouter/free';
 
 /**
  * Server-side centralized model registry.
@@ -22,32 +22,32 @@ export const MODEL_REGISTRY: Record<TaskCategory, CategoryModelConfig> = {
     displayName: 'Coding AI',
     badgeLabel: 'Coding AI',
     description: 'Specialized in algorithms, code generation, debugging, and system implementation',
-    primaryModel: 'qwen/qwen-2.5-coder-32b-instruct:free',
-    secondaryModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    primaryModel: 'cohere/north-mini-code:free',
+    secondaryModel: 'qwen/qwen3.8-27b:free',
   },
   reasoning: {
     category: 'reasoning',
     displayName: 'Reasoning AI',
     badgeLabel: 'Reasoning AI',
     description: 'Optimized for step-by-step logic, complex problem solving, and architecture',
-    primaryModel: 'deepseek/deepseek-r1:free',
-    secondaryModel: 'qwen/qwq-32b:free',
+    primaryModel: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    secondaryModel: 'nvidia/nemotron-3-ultra-550b-a55b:free',
   },
   finance: {
     category: 'finance',
     displayName: 'Finance AI',
     badgeLabel: 'Finance AI',
     description: 'Focused on financial statement analysis, valuations, markets, and investment concepts',
-    primaryModel: 'meta-llama/llama-3.3-70b-instruct:free',
-    secondaryModel: 'mistralai/mistral-small-24b-instruct-2501:free',
+    primaryModel: 'inclusionai/ling-3.0-flash-fin:free',
+    secondaryModel: 'google/gemma-4-31b-it:free',
   },
   general: {
     category: 'general',
     displayName: 'General AI',
     badgeLabel: 'General AI',
     description: 'Versatile general-purpose intelligence for all conversational and creative requests',
-    primaryModel: 'google/gemini-2.0-flash-exp:free',
-    secondaryModel: 'meta-llama/llama-3.3-70b-instruct:free',
+    primaryModel: 'google/gemma-4-26b-a4b-it:free',
+    secondaryModel: 'qwen/qwen3.8-27b:free',
   },
 };
 
@@ -102,13 +102,15 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
   // Fallback to static configured models if network lookup fails
   if (!availableFreeModelsCache) {
     availableFreeModelsCache = new Set([
-      'qwen/qwen-2.5-coder-32b-instruct:free',
-      'deepseek/deepseek-r1:free',
-      'qwen/qwq-32b:free',
-      'meta-llama/llama-3.3-70b-instruct:free',
-      'mistralai/mistral-small-24b-instruct-2501:free',
-      'google/gemini-2.0-flash-exp:free',
-      'openrouter/auto:free',
+      'openrouter/free',
+      'google/gemma-4-26b-a4b-it:free',
+      'google/gemma-4-31b-it:free',
+      'qwen/qwen3.8-27b:free',
+      'cohere/north-mini-code:free',
+      'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+      'nvidia/nemotron-3-ultra-550b-a55b:free',
+      'inclusionai/ling-3.0-flash-fin:free',
+      'liquid/lfm-2.5-2.6b:free',
     ]);
   }
   return availableFreeModelsCache;
@@ -118,5 +120,5 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
  * Validates that a model adheres strictly to the Free Model Policy
  */
 export function isFreeModel(modelId: string): boolean {
-  return modelId.endsWith(':free') || modelId === 'openrouter/auto:free';
+  return modelId.endsWith(':free') || modelId === 'openrouter/free' || modelId === 'openrouter/auto:free';
 }

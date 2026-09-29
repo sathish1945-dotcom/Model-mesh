@@ -10,13 +10,67 @@ export interface User {
   created_at: string;
 }
 
+export type IntegrationProvider = 'openrouter' | 'github' | 'vercel' | 'supabase' | 'google-drive';
+
 export interface ProviderConnection {
   id: string;
   user_id: string;
-  provider: 'openrouter';
+  provider: IntegrationProvider;
+  provider_account_id?: string;
+  account_username?: string;
+  scopes?: string;
   connection_status: 'connected' | 'disconnected' | 'error';
+  token_expiry?: string;
   created_at: string;
   updated_at: string;
+}
+
+export type PermissionLevel = 'READ' | 'WRITE' | 'DANGEROUS';
+
+export interface ConnectorCapability {
+  name: string;
+  description: string;
+  permissionLevel: PermissionLevel;
+  requiresConfirmation?: boolean;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  user_id: string;
+  provider: IntegrationProvider;
+  action: string;
+  resource?: string;
+  permission_level: PermissionLevel;
+  status: 'success' | 'failed' | 'denied' | 'pending_confirmation';
+  approval_status?: 'auto_approved' | 'user_confirmed' | 'rejected';
+  details?: Record<string, any>;
+  created_at: string;
+}
+
+export interface ActionProposal {
+  id: string;
+  provider: IntegrationProvider;
+  action: string;
+  description: string;
+  permissionLevel: PermissionLevel;
+  params: Record<string, any>;
+  status: 'pending' | 'confirmed' | 'rejected' | 'executed' | 'failed';
+  result?: any;
+  error?: string;
+  created_at: string;
+}
+
+export interface IntegrationSummary {
+  provider: IntegrationProvider;
+  displayName: string;
+  description: string;
+  icon: string;
+  connectionStatus: 'connected' | 'disconnected' | 'error' | 'expired' | 'coming_soon';
+  accountUsername?: string;
+  connectedAt?: string;
+  capabilities: ConnectorCapability[];
+  metadata?: Record<string, any>;
+  comingSoon?: boolean;
 }
 
 export interface Chat {
@@ -34,6 +88,8 @@ export interface ChatMessage {
   content: string;
   model_category?: TaskCategory;
   model_id?: string;
+  proposal?: ActionProposal;
+  toolRequirement?: { providers: string[]; message: string };
   created_at: string;
 }
 

@@ -46,6 +46,19 @@ export const initGoogleAuth = (
   });
 };
 
+export const signInWithGoogle = async (): Promise<FirebaseUser> => {
+  try {
+    const basicProvider = new GoogleAuthProvider();
+    basicProvider.addScope('email');
+    basicProvider.addScope('profile');
+    const result = await signInWithPopup(auth, basicProvider);
+    return result.user;
+  } catch (error: any) {
+    console.error('Google Sign-in error:', error);
+    throw error;
+  }
+};
+
 export const signInWithGoogleTasks = async (): Promise<{
   user: FirebaseUser;
   accessToken: string;

@@ -12,14 +12,17 @@ import {
   Brain,
   TrendingUp,
   Compass,
+  Blocks,
 } from 'lucide-react';
 import type { ChatMessage, TaskCategory } from '../types/index.ts';
+import { ActionProposalCard } from './ActionProposalCard.tsx';
 
 interface ChatMessageItemProps {
   message: ChatMessage;
   isStreaming?: boolean;
   onRegenerate?: () => void;
   isLastAssistantMessage?: boolean;
+  onOpenIntegrations?: () => void;
 }
 
 const CATEGORY_META: Record<
@@ -53,6 +56,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   isStreaming,
   onRegenerate,
   isLastAssistantMessage,
+  onOpenIntegrations,
 }) => {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
@@ -175,6 +179,31 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               >
                 {message.content}
               </ReactMarkdown>
+
+              {/* Tool Requirement Callout */}
+              {message.toolRequirement && (
+                <div className="my-3 p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/40 flex items-center justify-between gap-3 text-xs not-prose">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                    <Blocks className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span>{message.toolRequirement.message}</span>
+                  </div>
+                  {onOpenIntegrations && (
+                    <button
+                      onClick={onOpenIntegrations}
+                      className="shrink-0 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium shadow-2xs"
+                    >
+                      Connect Tools
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Action Proposal Card */}
+              {message.proposal && (
+                <div className="not-prose">
+                  <ActionProposalCard proposal={message.proposal} />
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -19,6 +19,7 @@ interface ProviderSettingsModalProps {
   onDisconnectOpenRouter: () => void;
   appUrl: string;
   isConnecting: boolean;
+  onOpenIntegrations?: () => void;
 }
 
 export const ProviderSettingsModal: React.FC<ProviderSettingsModalProps> = ({
@@ -29,6 +30,7 @@ export const ProviderSettingsModal: React.FC<ProviderSettingsModalProps> = ({
   onDisconnectOpenRouter,
   appUrl,
   isConnecting,
+  onOpenIntegrations,
 }) => {
   const [activeTab, setActiveTab] = useState<'status' | 'env' | 'flow'>('status');
   const isConnected = providerStatus?.connection_status === 'connected';
@@ -47,12 +49,12 @@ export const ProviderSettingsModal: React.FC<ProviderSettingsModalProps> = ({
               OR
             </div>
             <div>
+              <div className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-0.5">
+                Settings → Models & Routing
+              </div>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
                 OpenRouter Connection
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Official OAuth PKCE Flow • Free Models
-              </p>
             </div>
           </div>
           <button
@@ -64,37 +66,54 @@ export const ProviderSettingsModal: React.FC<ProviderSettingsModalProps> = ({
         </div>
 
         {/* Tab navigation */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-5 text-xs font-medium">
-          <button
-            onClick={() => setActiveTab('status')}
-            className={`py-2.5 border-b-2 transition-colors mr-4 ${
-              activeTab === 'status'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            Connection Status
-          </button>
-          <button
-            onClick={() => setActiveTab('env')}
-            className={`py-2.5 border-b-2 transition-colors mr-4 ${
-              activeTab === 'env'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            Environment Variables
-          </button>
-          <button
-            onClick={() => setActiveTab('flow')}
-            className={`py-2.5 border-b-2 transition-colors ${
-              activeTab === 'flow'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            PKCE Architecture
-          </button>
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-5 text-xs font-medium items-center justify-between">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('status')}
+              className={`py-2.5 border-b-2 transition-colors mr-4 ${
+                activeTab === 'status'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              Connection Status
+            </button>
+            <button
+              onClick={() => setActiveTab('env')}
+              className={`py-2.5 border-b-2 transition-colors mr-4 ${
+                activeTab === 'env'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              Environment Variables
+            </button>
+            <button
+              onClick={() => setActiveTab('flow')}
+              className={`py-2.5 border-b-2 transition-colors ${
+                activeTab === 'flow'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+              }`}
+            >
+              PKCE Architecture
+            </button>
+          </div>
+
+          {onOpenIntegrations && (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onOpenIntegrations();
+              }}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-semibold py-1 ml-2 shrink-0"
+              title="Navigate to Settings → Integrations"
+            >
+              <span>Integrations</span>
+              <span>→</span>
+            </button>
+          )}
         </div>
 
         {/* Content */}

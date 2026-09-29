@@ -35,6 +35,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.nativeEvent.isComposing) return;
       e.preventDefault();
       if (!isStreaming && input.trim() && !disabled) {
         onSend();
@@ -88,7 +89,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               <button
                 type="button"
                 onClick={onSend}
-                disabled={!input.trim() || disabled}
+                disabled={!input.trim() || disabled || isStreaming}
                 className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-xl shadow-xs transition-transform active:scale-95"
                 title="Send message (Enter)"
               >

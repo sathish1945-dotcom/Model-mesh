@@ -8,7 +8,7 @@ export async function resolveModelRoute(
   const config = MODEL_REGISTRY[category] || MODEL_REGISTRY.general;
   const availableModels = await refreshAvailableModels(userApiKey);
 
-  // Free model hierarchy: Primary -> Secondary -> OpenRouter Free Router
+  // Free model hierarchy: Primary -> Secondary -> OpenRouter Free Router (Max 3 total attempts)
   const candidateModels: string[] = [];
 
   // Check if primary model is available
@@ -23,16 +23,19 @@ export async function resolveModelRoute(
 
   // If none from dynamic list matched, still include config.primaryModel as the first attempt
   if (candidateModels.length === 0) {
-    candidateModels.push(config.primaryModel, config.secondaryModel);
+    candidateModels.push(config.primaryModel);
   }
 
-  // Always include the OpenRouter free router as final safety net
+  // Safety net: Always include the OpenRouter Free Router as maintained fallback
   if (!candidateModels.includes(OPENROUTER_FREE_ROUTER_FALLBACK)) {
     candidateModels.push(OPENROUTER_FREE_ROUTER_FALLBACK);
   }
 
-  const selectedModel = candidateModels[0];
-  const fallbackModels = candidateModels.slice(1);
+  // Cap candidate models to maximum 3 attempts per user request
+  const cappedModels = candidateModels.slice(0, 3);
+
+  const selectedModel = cappedModels[0];
+  const fallbackModels = cappedModels.slice(1);
 
   return {
     category,

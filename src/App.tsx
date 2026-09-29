@@ -8,8 +8,10 @@ import { RoutingIndicator } from './components/RoutingIndicator.tsx';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { GoogleTasksModal } from './components/GoogleTasksModal.tsx';
-import { initGoogleAuth } from './lib/firebase-auth.ts';
+import { IntegrationsModal } from './components/IntegrationsModal.tsx';
+import { initGoogleAuth, logOutGoogle } from './lib/firebase-auth.ts';
 import { formatChatToMarkdown, downloadMarkdownFile } from './lib/export-markdown.ts';
+import { apiRequest, parseApiError } from './lib/api.ts';
 import type {
   User,
   ProviderConnection,
@@ -45,11 +47,13 @@ export default function App() {
   // UI & Drawer state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [bannerAlert, setBannerAlert] = useState<{ message: string; type: 'error' | 'info' | 'success' } | null>(null);
 
   // Streaming & Routing indicator state
   const [isStreaming, setIsStreaming] = useState(false);
+  const isStreamingRef = useRef(false);
   const [routingStatus, setRoutingStatus] = useState<'idle' | 'routing' | 'streaming'>('idle');
   const [activeCategory, setActiveCategory] = useState<TaskCategory | undefined>();
   const [isFallbackRoute, setIsFallbackRoute] = useState(false);
@@ -85,11 +89,8 @@ export default function App() {
 
   const fetchConfig = async () => {
     try {
-      const res = await fetch('/api/config');
-      if (res.ok) {
-        const data = await res.json();
-        if (data.appUrl) setAppUrl(data.appUrl);
-      }
+      const data = await apiRequest<{ appUrl?: string }>('/api/config');
+      if (data.appUrl) setAppUrl(data.appUrl);
     } catch (e) {
       // Fallback to origin
     }
@@ -97,14 +98,11 @@ export default function App() {
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-        if (data.user) {
-          fetchProviderStatus();
-          fetchChats();
-        }
+      const data = await apiRequest<{ user: User | null }>('/api/auth/me');
+      setUser(data.user);
+      if (data.user) {
+        fetchProviderStatus();
+        fetchChats();
       }
     } catch (err) {
       console.error('Failed to fetch user:', err);
@@ -113,18 +111,15 @@ export default function App() {
 
   const fetchProviderStatus = async () => {
     try {
-      const res = await fetch('/api/openrouter/status');
-      if (res.ok) {
-        const data = await res.json();
-        setProviderStatus({
-          id: 'openrouter-status',
-          user_id: user?.id || '',
-          provider: 'openrouter',
-          connection_status: data.connected ? 'connected' : 'disconnected',
-          created_at: '',
-          updated_at: data.updatedAt || '',
-        });
-      }
+      const data = await apiRequest<{ connected: boolean; updatedAt?: string }>('/api/openrouter/status');
+      setProviderStatus({
+        id: 'openrouter-status',
+        user_id: user?.id || '',
+        provider: 'openrouter',
+        connection_status: data.connected ? 'connected' : 'disconnected',
+        created_at: '',
+        updated_at: data.updatedAt || '',
+      });
     } catch (err) {
       console.error('Failed to fetch provider status:', err);
     }
@@ -132,11 +127,8 @@ export default function App() {
 
   const fetchChats = async () => {
     try {
-      const res = await fetch('/api/chats');
-      if (res.ok) {
-        const data = await res.json();
-        setChats(data.chats || []);
-      }
+      const data = await apiRequest<{ chats: Chat[] }>('/api/chats');
+      setChats(data.chats || []);
     } catch (err) {
       console.error('Failed to fetch chats:', err);
     }
@@ -144,12 +136,9 @@ export default function App() {
 
   const loadChatMessages = async (chatId: string) => {
     try {
-      const res = await fetch(`/api/chats/${chatId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages || []);
-        setActiveChatId(chatId);
-      }
+      const data = await apiRequest<{ messages: ChatMessage[] }>(`/api/chats/${chatId}`);
+      setMessages(data.messages || []);
+      setActiveChatId(chatId);
     } catch (err) {
       console.error('Failed to load chat:', err);
     }
@@ -193,11 +182,7 @@ export default function App() {
 
     try {
       setIsConnectingOpenRouter(true);
-      const res = await fetch('/api/openrouter/connect');
-      if (!res.ok) {
-        throw new Error('Could not initiate OpenRouter connection');
-      }
-      const data = await res.json();
+      const data = await apiRequest<{ url?: string }>('/api/openrouter/connect');
       if (!data.url) {
         throw new Error('No authorization URL returned');
       }
@@ -224,35 +209,35 @@ export default function App() {
 
   const handleDisconnectOpenRouter = async () => {
     try {
-      const res = await fetch('/api/openrouter/disconnect', { method: 'POST' });
-      if (res.ok) {
-        fetchProviderStatus();
-        setBannerAlert({
-          message: 'OpenRouter account disconnected.',
-          type: 'info',
-        });
-        setTimeout(() => setBannerAlert(null), 3000);
-      }
-    } catch (err) {
+      await apiRequest('/api/openrouter/disconnect', { method: 'POST' });
+      fetchProviderStatus();
+      setBannerAlert({
+        message: 'OpenRouter account disconnected.',
+        type: 'info',
+      });
+      setTimeout(() => setBannerAlert(null), 3000);
+    } catch (err: any) {
       console.error('Failed to disconnect:', err);
     }
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await apiRequest('/api/auth/logout', { method: 'POST' });
+      await logOutGoogle().catch(() => {});
       setUser(null);
       setProviderStatus(null);
       setChats([]);
       setActiveChatId(null);
       setMessages([]);
+      setTasksToken(null);
     } catch (err) {
       console.error('Logout error:', err);
     }
   };
 
   const handleNewChat = () => {
-    if (isStreaming) {
+    if (isStreaming || isStreamingRef.current) {
       handleStopStreaming();
     }
     setActiveChatId(null);
@@ -265,12 +250,10 @@ export default function App() {
 
   const handleDeleteChat = async (chatId: string) => {
     try {
-      const res = await fetch(`/api/chats/${chatId}`, { method: 'DELETE' });
-      if (res.ok) {
-        setChats((prev) => prev.filter((c) => c.id !== chatId));
-        if (activeChatId === chatId) {
-          handleNewChat();
-        }
+      await apiRequest(`/api/chats/${chatId}`, { method: 'DELETE' });
+      setChats((prev) => prev.filter((c) => c.id !== chatId));
+      if (activeChatId === chatId) {
+        handleNewChat();
       }
     } catch (err) {
       console.error('Failed to delete chat:', err);
@@ -301,9 +284,7 @@ export default function App() {
       let targetTitle = chats.find((c) => c.id === chatId)?.title || 'ModelMesh Chat';
 
       if (chatId !== activeChatId) {
-        const res = await fetch(`/api/chats/${chatId}`);
-        if (!res.ok) throw new Error('Could not load chat messages for export');
-        const data = await res.json();
+        const data = await apiRequest<{ messages: ChatMessage[] }>(`/api/chats/${chatId}`);
         targetMessages = data.messages || [];
       }
 
@@ -339,6 +320,7 @@ export default function App() {
   };
 
   const handleStopStreaming = () => {
+    isStreamingRef.current = false;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -350,7 +332,8 @@ export default function App() {
   // Main Prompt Submission & SSE Streaming
   const handleSendMessage = async (customPrompt?: string) => {
     const promptToSend = customPrompt || input;
-    if (!promptToSend.trim() || isStreaming) return;
+    // Synchronous ref guard against duplicate calls, double clicks, and StrictMode double-triggers
+    if (!promptToSend.trim() || isStreamingRef.current) return;
 
     if (!user) {
       setIsAuthOpen(true);
@@ -366,6 +349,20 @@ export default function App() {
       return;
     }
 
+    // Abort any previous running stream reader before starting a new one
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    isStreamingRef.current = true;
+    setIsStreaming(true);
+    setRoutingStatus('routing');
+    setActiveCategory(undefined);
+    setIsFallbackRoute(false);
+    setInput('');
+
+    const assistantMsgId = `assistant-${Date.now()}`;
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       chat_id: activeChatId || 'temp',
@@ -375,7 +372,7 @@ export default function App() {
     };
 
     const assistantMsgPlaceholder: ChatMessage = {
-      id: `assistant-${Date.now()}`,
+      id: assistantMsgId,
       chat_id: activeChatId || 'temp',
       role: 'assistant',
       content: '',
@@ -383,14 +380,11 @@ export default function App() {
     };
 
     setMessages((prev) => [...prev, userMsg, assistantMsgPlaceholder]);
-    setInput('');
-    setIsStreaming(true);
-    setRoutingStatus('routing');
-    setActiveCategory(undefined);
-    setIsFallbackRoute(false);
 
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
+
+    let accumulatedText = '';
 
     try {
       const response = await fetch('/api/chat', {
@@ -405,8 +399,8 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (errorData.code === 'OPENROUTER_NOT_CONNECTED') {
+        const errorInfo = await parseApiError(response, 'Failed to send prompt');
+        if (errorInfo.code === 'OPENROUTER_NOT_CONNECTED') {
           setBannerAlert({
             message: 'Connect OpenRouter to start chatting.',
             type: 'error',
@@ -414,13 +408,11 @@ export default function App() {
           setIsSettingsOpen(true);
         } else {
           setBannerAlert({
-            message: errorData.error || 'Failed to send prompt',
+            message: errorInfo.message,
             type: 'error',
           });
         }
-        setMessages((prev) => prev.slice(0, -1));
-        setIsStreaming(false);
-        setRoutingStatus('idle');
+        setMessages((prev) => prev.filter((m) => m.id !== assistantMsgId));
         return;
       }
 
@@ -456,50 +448,143 @@ export default function App() {
                 fetchChats();
               }
               setMessages((prev) => {
-                const next = [...prev];
-                const last = next[next.length - 1];
-                if (last && last.role === 'assistant') {
-                  last.model_category = event.category;
-                  last.model_id = event.modelId;
-                }
-                return next;
+                const lastIndex = prev.length - 1;
+                if (lastIndex < 0) return prev;
+                const last = prev[lastIndex];
+                if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                return [
+                  ...prev.slice(0, lastIndex),
+                  {
+                    ...last,
+                    model_category: event.category,
+                    model_id: event.modelId,
+                  },
+                ];
               });
             } else if (event.type === 'fallback_switch') {
               setIsFallbackRoute(true);
+              if (event.resetContent) {
+                accumulatedText = '';
+                setMessages((prev) => {
+                  const lastIndex = prev.length - 1;
+                  if (lastIndex < 0) return prev;
+                  const last = prev[lastIndex];
+                  if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                  return [
+                    ...prev.slice(0, lastIndex),
+                    { ...last, content: '' },
+                  ];
+                });
+              }
               setBannerAlert({
                 message: `Primary model unavailable. Switched seamlessly to free fallback model.`,
                 type: 'info',
               });
               setTimeout(() => setBannerAlert(null), 3000);
-            } else if (event.type === 'chunk') {
+            } else if (event.type === 'tool_requirement') {
               setMessages((prev) => {
-                const next = [...prev];
-                const last = next[next.length - 1];
-                if (last && last.role === 'assistant') {
-                  last.content += event.text;
-                }
-                return next;
+                const lastIndex = prev.length - 1;
+                if (lastIndex < 0) return prev;
+                const last = prev[lastIndex];
+                if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                return [
+                  ...prev.slice(0, lastIndex),
+                  {
+                    ...last,
+                    toolRequirement: {
+                      providers: event.unconnectedProviders || [],
+                      message: event.message || 'Please connect required developer tools in the Tools panel.',
+                    },
+                  },
+                ];
               });
+            } else if (event.type === 'action_proposal') {
+              setMessages((prev) => {
+                const lastIndex = prev.length - 1;
+                if (lastIndex < 0) return prev;
+                const last = prev[lastIndex];
+                if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                return [
+                  ...prev.slice(0, lastIndex),
+                  {
+                    ...last,
+                    proposal: event.proposal,
+                  },
+                ];
+              });
+            } else if (event.type === 'chunk') {
+              if (typeof event.text === 'string' && event.text.length > 0) {
+                // Safeguard against providers sending accumulated snapshots rather than deltas
+                if (accumulatedText && event.text.startsWith(accumulatedText)) {
+                  accumulatedText = event.text;
+                } else if (accumulatedText && event.text === accumulatedText) {
+                  // Duplicate snapshot: ignore
+                } else {
+                  accumulatedText += event.text;
+                }
+
+                const currentText = accumulatedText;
+                // Pure immutable update - immune to React StrictMode double invocation!
+                setMessages((prev) => {
+                  const lastIndex = prev.length - 1;
+                  if (lastIndex < 0) return prev;
+                  const last = prev[lastIndex];
+                  if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                  if (last.content === currentText) return prev;
+                  return [
+                    ...prev.slice(0, lastIndex),
+                    {
+                      ...last,
+                      content: currentText,
+                    },
+                  ];
+                });
+              }
             } else if (event.type === 'done') {
+              isStreamingRef.current = false;
               setIsStreaming(false);
               setRoutingStatus('idle');
               if (event.chatId) {
                 setActiveChatId(event.chatId);
                 fetchChats();
               }
+              const finalContent = accumulatedText;
+              setMessages((prev) => {
+                const lastIndex = prev.length - 1;
+                if (lastIndex < 0) return prev;
+                const last = prev[lastIndex];
+                if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                return [
+                  ...prev.slice(0, lastIndex),
+                  {
+                    ...last,
+                    id: event.messageId || last.id,
+                    model_category: event.category || last.model_category,
+                    model_id: event.modelId || last.model_id,
+                    content: finalContent,
+                  },
+                ];
+              });
             } else if (event.type === 'error') {
               setBannerAlert({
                 message: event.error,
                 type: 'error',
               });
+              const errorContent = accumulatedText || `⚠️ ${event.error}`;
               setMessages((prev) => {
-                const next = [...prev];
-                const last = next[next.length - 1];
-                if (last && last.role === 'assistant') {
-                  last.content = last.content || `⚠️ ${event.error}`;
-                }
-                return next;
+                const lastIndex = prev.length - 1;
+                if (lastIndex < 0) return prev;
+                const last = prev[lastIndex];
+                if (last.role !== 'assistant' || last.id !== assistantMsgId) return prev;
+                return [
+                  ...prev.slice(0, lastIndex),
+                  {
+                    ...last,
+                    content: errorContent,
+                  },
+                ];
               });
+              isStreamingRef.current = false;
               setIsStreaming(false);
               setRoutingStatus('idle');
             }
@@ -517,6 +602,7 @@ export default function App() {
         });
       }
     } finally {
+      isStreamingRef.current = false;
       setIsStreaming(false);
       setRoutingStatus('idle');
       abortControllerRef.current = null;
@@ -557,6 +643,7 @@ export default function App() {
           onNewChat={handleNewChat}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenTasks={() => setIsTasksModalOpen(true)}
+          onOpenIntegrations={() => setIsIntegrationsOpen(true)}
           isTasksConnected={Boolean(tasksToken)}
           onExportMarkdown={handleExportCurrentChat}
           hasMessagesToExport={messages.length > 0}
@@ -612,6 +699,7 @@ export default function App() {
                     isStreaming={isStreaming && isLastAssistant}
                     onRegenerate={handleRegenerate}
                     isLastAssistantMessage={isLastAssistant}
+                    onOpenIntegrations={() => setIsIntegrationsOpen(true)}
                   />
                 );
               })}
@@ -650,6 +738,15 @@ export default function App() {
         onDisconnectOpenRouter={handleDisconnectOpenRouter}
         appUrl={appUrl}
         isConnecting={isConnectingOpenRouter}
+        onOpenIntegrations={() => setIsIntegrationsOpen(true)}
+      />
+
+      {/* Developer Integrations & Plugins Modal */}
+      <IntegrationsModal
+        isOpen={isIntegrationsOpen}
+        onClose={() => setIsIntegrationsOpen(false)}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        isAuthenticated={Boolean(user)}
       />
 
       {/* Google Tasks Workspace Modal */}
