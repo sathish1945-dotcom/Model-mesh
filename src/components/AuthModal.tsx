@@ -77,7 +77,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onAuthSuccess(data.user);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
+      if (err?.code === 'auth/unauthorized-domain') {
+        setError(`Google sign-in is not enabled for ${window.location.hostname}. You can use email sign-in here. The site owner must add this hostname in Firebase Authentication → Settings → Authorized domains.`);
+      } else if (err?.code === 'auth/popup-blocked') {
+        setError('Your browser blocked the Google sign-in window. Allow popups for this site, then try again, or use email sign-in.');
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setError('Google sign-in was closed before completion. You can try again or use email sign-in.');
+      } else {
+        setError(err.message || 'Google sign-in failed');
+      }
     } finally {
       setLoading(false);
     }
