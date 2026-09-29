@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, MessageSquare, Trash2, X, Download, Blocks, Settings, LogOut, Sun, Moon, UserRound } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, X, Download, Blocks, Settings, LogOut, Sun, Moon, UserRound, Layers3 } from 'lucide-react';
 import { ModelMeshLogo } from './ModelMeshLogo.tsx';
 import type { Chat, User } from '../types/index.ts';
 
@@ -13,6 +13,7 @@ interface SidebarProps {
   onDeleteChat: (chatId: string) => void;
   onExportChat?: (chatId: string) => void;
   onOpenSettings: () => void;
+  onOpenModels: () => void;
   onOpenIntegrations: () => void;
   onOpenAuth: () => void;
   onLogout: () => void;
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteChat,
   onExportChat,
   onOpenSettings,
+  onOpenModels,
   onOpenIntegrations,
   onOpenAuth,
   onLogout,
@@ -143,6 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="p-2 border-t border-zinc-200/80 dark:border-zinc-800 space-y-0.5 text-sm">
+          <button onClick={menuAction(onOpenModels)} className="mobile-menu-item"><Layers3 className="w-4 h-4" /> Models & usage</button>
           <button onClick={menuAction(onOpenIntegrations)} className="mobile-menu-item"><Blocks className="w-4 h-4" /> Integrations</button>
           <button onClick={menuAction(onOpenSettings)} className="mobile-menu-item"><Settings className="w-4 h-4" /> OpenRouter settings</button>
           <button onClick={menuAction(onToggleDarkMode)} className="mobile-menu-item">{darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} {darkMode ? 'Light theme' : 'Dark theme'}</button>
