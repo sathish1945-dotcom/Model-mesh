@@ -11,7 +11,8 @@ export async function resolveModelRoute(
   // Explicit free models only. The free router randomly picks a provider and can
   // return a moderation model instead of an assistant, so never send chat to it.
   const preferences = [config.primaryModel, config.secondaryModel,
-    MODEL_REGISTRY.general.primaryModel, MODEL_REGISTRY.general.secondaryModel];
+    MODEL_REGISTRY.general.primaryModel, MODEL_REGISTRY.general.secondaryModel,
+    'qwen/qwen3.8-27b:free'];
   const candidates = [...new Set(preferences)].filter((model) => isFreeModel(model) && model !== 'openrouter/free');
   const verified = candidates.filter((model) => availableModels.has(model));
   // A failed catalog lookup must not silently turn into random routing.
