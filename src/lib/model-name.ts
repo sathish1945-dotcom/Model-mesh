@@ -5,6 +5,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   'google/gemma-4-31b-it:free': 'Gemma 4 31B',
   'google/gemma-4-26b-a4b-it:free': 'Gemma 4 26B',
   'inclusionai/ling-3.0-flash-fin:free': 'Ling 3.0 Finance',
+  'inclusionai/ling-3.0-flash:free': 'Ling 3.0 Flash',
 };
 
 export function displayModelName(modelId?: string): string | undefined {
