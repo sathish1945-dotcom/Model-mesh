@@ -35,10 +35,32 @@ export class PostgresDatabase {
     return this.pool;
   }
 
-  private async rows<T>(sql: string, values: unknown[] = []): Promise<T[]> {
-    const result = await this.getPool().query(sql, values);
-    return result.rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) =>
-      [key, value instanceof Date ? value.toISOString() : value]))) as T[];
+  private async rows<T>(sql: string, values: unknown[] = [], isRetry = false): Promise<T[]> {
+    try {
+      const result = await this.getPool().query(sql, values);
+      return result.rows.map(row => Object.fromEntries(Object.entries(row).map(([key, value]) =>
+        [key, value instanceof Date ? value.toISOString() : value]))) as T[];
+    } catch (err: any) {
+      // If serverless cold start dropped connection or timed out, reset pool and retry once
+      const isTransient = !isRetry && (
+        err.code === 'ECONNRESET' ||
+        err.code === 'ETIMEDOUT' ||
+        err.code === '57P01' || // admin_shutdown
+        err.code === '08006' || // connection_failure
+        err.code === '08001' || // sqlclient_unable_to_establish_sqlconnection
+        err.message?.includes('Connection terminated') ||
+        err.message?.includes('timeout')
+      );
+      if (isTransient) {
+        console.warn('[DB] Retrying transient query failure:', err.code || err.message);
+        if (this.pool) {
+          try { await this.pool.end(); } catch {}
+          this.pool = undefined;
+        }
+        return this.rows<T>(sql, values, true);
+      }
+      throw err;
+    }
   }
 
   async findUserByEmail(email: string) {
