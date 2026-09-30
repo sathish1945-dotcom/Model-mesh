@@ -26,8 +26,9 @@ const post = (path: string, body: unknown, cookie = '') => fetch(base + path, {
 
 after(async () => {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
-  process.chdir(originalDirectory);
-  rmSync(temporaryDirectory, { recursive: true, force: true });
+  try {
+    rmSync(temporaryDirectory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+  } catch {}
 });
 
 test('API config and missing routes return JSON', async () => {

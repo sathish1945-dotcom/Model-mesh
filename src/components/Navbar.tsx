@@ -104,8 +104,10 @@ export const Navbar: React.FC<NavbarProps> = ({
           <Menu className="w-5 h-5" />
         </button>
 
-        <button type="button" className="flex items-center gap-2 min-w-0 select-none" onClick={onNewChat} aria-label="ModelMesh, new chat">
-          <ModelMeshLogo className="w-8 h-8 shrink-0" />
+        <button type="button" className="group flex items-center gap-2 min-w-0 select-none cursor-pointer" onClick={onNewChat} aria-label="ModelMesh, new chat">
+          <div className="transform transition-transform duration-200 group-hover:scale-105 group-active:scale-95">
+            <ModelMeshLogo className="w-8 h-8 shrink-0" />
+          </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight text-base">

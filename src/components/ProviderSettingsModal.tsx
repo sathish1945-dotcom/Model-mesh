@@ -33,8 +33,8 @@ export const ProviderSettingsModal: React.FC<ProviderSettingsModalProps> = ({
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div role="dialog" aria-modal="true" aria-label="OpenRouter settings" className="relative w-full max-w-lg h-[100dvh] sm:h-auto sm:max-h-[90dvh] bg-white dark:bg-zinc-900 rounded-none sm:rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
+      <div role="dialog" aria-modal="true" aria-label="OpenRouter settings" className="relative w-full max-w-lg h-[100dvh] sm:h-auto sm:max-h-[90dvh] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-none sm:rounded-2xl shadow-2xl border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">

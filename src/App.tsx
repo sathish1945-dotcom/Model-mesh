@@ -9,6 +9,7 @@ import { ProviderSettingsModal } from './components/ProviderSettingsModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { IntegrationsModal } from './components/IntegrationsModal.tsx';
 import { ModelsModal } from './components/ModelsModal.tsx';
+import { BrandIntroAnimation } from './components/BrandIntroAnimation.tsx';
 import { logOutGoogle } from './lib/firebase-auth.ts';
 import { formatChatToMarkdown, downloadMarkdownFile } from './lib/export-markdown.ts';
 import { apiRequest, parseApiError } from './lib/api.ts';
@@ -71,6 +72,32 @@ export default function App() {
   useEffect(() => {
     fetchCurrentUser();
 
+    // Check URL parameters for OAuth redirects (e.g. mobile full-page redirects)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const connected = params.get('integration_connected');
+      const error = params.get('integration_error');
+      if (connected === 'openrouter') {
+        fetchProviderStatus();
+        setBannerAlert({
+          message: 'OpenRouter connected successfully! Free models are ready.',
+          type: 'success',
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (connected === 'google-drive') {
+        setBannerAlert({
+          message: 'Google Drive connected successfully!',
+          type: 'success',
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (error) {
+        setBannerAlert({
+          message: decodeURIComponent(error),
+          type: 'error',
+        });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -172,6 +199,12 @@ export default function App() {
         throw new Error('No authorization URL returned');
       }
 
+      const isMobile = typeof window !== 'undefined' && (window.innerWidth < 640 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+      if (isMobile) {
+        window.location.href = data.url;
+        return;
+      }
+
       const popup = window.open(
         data.url,
         'openrouter_oauth_popup',
@@ -179,8 +212,7 @@ export default function App() {
       );
 
       if (!popup) {
-        alert('Please allow popups to connect your OpenRouter account.');
-        setIsConnectingOpenRouter(false);
+        window.location.href = data.url;
       }
     } catch (err: any) {
       console.error('OpenRouter connect error:', err);
@@ -761,6 +793,9 @@ export default function App() {
           fetchChats();
         }}
       />
+
+      {/* Brand Intro Animation (played once on first page load / session) */}
+      <BrandIntroAnimation onComplete={() => {}} />
     </div>
   );
 }

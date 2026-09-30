@@ -4,6 +4,7 @@ import { db } from '../db.ts';
 import { getAppUrl } from '../openrouter-oauth.ts';
 import { connectorRegistry } from './registry.ts';
 import { GoogleDriveConnector, GOOGLE_DRIVE_SCOPE } from './google-drive-connector.ts';
+import { generateToken, setSessionCookie } from '../auth.ts';
 
 function base64UrlEncode(buffer: Buffer): string {
   return buffer
@@ -88,15 +89,21 @@ export async function handleGoogleDriveConnect(req: Request, res: Response) {
 export async function handleGoogleDriveCallback(req: Request, res: Response) {
   const { code, state, error, error_description } = req.query;
 
+  const rawState = state;
+  const stateStr = Array.isArray(rawState) ? String(rawState[0]) : typeof rawState === 'string' ? rawState : '';
+  const codeStr = Array.isArray(code) ? String(code[0]) : typeof code === 'string' ? code : '';
+
   const renderPopupResult = (success: boolean, message: string) => {
     const safeMessage = message.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
     const origin = getDriveAppUrl(req);
     const safePayload = JSON.stringify({ type: success ? 'GOOGLE_DRIVE_OAUTH_SUCCESS' : 'GOOGLE_DRIVE_OAUTH_ERROR', message }).replace(/</g, '\\u003c');
+    const redirectTarget = `${origin}/?integration_connected=google-drive${success ? '' : '&integration_error=' + encodeURIComponent(safeMessage)}`;
     return res.send(`
       <!DOCTYPE html>
       <html>
         <head>
           <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>ModelMesh - Google Drive Authorization</title>
           <style>
             body {
@@ -108,48 +115,61 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
               margin: 0;
               background-color: #09090b;
               color: #f4f4f5;
+              padding: 16px;
+              box-sizing: border-box;
             }
             .card {
               max-width: 420px;
+              width: 100%;
               text-align: center;
               padding: 32px 24px;
               background: #18181b;
               border: 1px solid #27272a;
-              border-radius: 12px;
+              border-radius: 16px;
+              box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
             }
-            h2 { margin-top: 0; font-size: 1.25rem; }
+            h2 { margin-top: 0; font-size: 1.25rem; font-weight: 600; }
             p { font-size: 0.9rem; color: #a1a1aa; line-height: 1.5; }
             .btn {
               margin-top: 16px;
               display: inline-block;
               background: #2563eb;
               color: #fff;
-              padding: 8px 16px;
-              border-radius: 6px;
+              padding: 10px 20px;
+              border-radius: 8px;
               text-decoration: none;
               font-size: 0.875rem;
+              font-weight: 500;
               cursor: pointer;
               border: none;
+              transition: background 0.15s ease;
             }
+            .btn:hover { background: #1d4ed8; }
           </style>
         </head>
         <body>
           <div class="card">
             <h2>${success ? 'Google Drive Connected' : 'Authorization Incomplete'}</h2>
             <p>${safeMessage}</p>
-            <button class="btn" onclick="window.close()">Close Window</button>
-            <a class="btn" href="${origin}">Return to ModelMesh</a>
-          </div>
-          <script>
-            try {
-              if (window.opener) {
-                window.opener.postMessage(${safePayload}, ${JSON.stringify(origin)});
-                setTimeout(() => window.close(), 1200);
+            <script>
+              try {
+                if (window.opener && window.opener !== window) {
+                  window.opener.postMessage(${safePayload}, ${JSON.stringify(origin)});
+                  setTimeout(() => window.close(), 1200);
+                } else {
+                  setTimeout(() => {
+                    window.location.replace(${JSON.stringify(redirectTarget)});
+                  }, 800);
+                }
+              } catch (e) {
+                window.location.replace(${JSON.stringify(redirectTarget)});
               }
-            } catch (e) {
-              console.warn(e);
-            }
-          </script>
+            </script>
+            <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+              <button class="btn" onclick="window.close()">Close Window</button>
+              <a class="btn" href="${redirectTarget}">Return to ModelMesh</a>
+            </div>
+          </div>
         </body>
       </html>
     `);
@@ -162,12 +182,12 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
     );
   }
 
-  if (!code || !state || typeof code !== 'string' || typeof state !== 'string') {
+  if (!codeStr || !stateStr) {
     return renderPopupResult(false, 'Missing required authorization code or state token.');
   }
 
   // Validate and consume state atomically to prevent replay attacks
-  const oauthState = await db.consumeOAuthState(state);
+  const oauthState = await db.consumeOAuthState(stateStr);
   if (!oauthState) {
     return renderPopupResult(
       false,
@@ -187,7 +207,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
 
     const tokenParams: Record<string, string> = {
       client_id: clientId,
-      code,
+      code: codeStr,
       code_verifier: codeVerifier,
       grant_type: 'authorization_code',
       redirect_uri: redirectUri,
@@ -227,9 +247,15 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
       return renderPopupResult(false, connectResult.error || 'Failed to initialize Google Drive connection.');
     }
 
+    // Restore and refresh the user's session cookie so session is 100% active on mobile
+    const user = await db.findUserById(userId);
+    if (user) {
+      setSessionCookie(res, generateToken(user));
+    }
+
     return renderPopupResult(
       true,
-      `Successfully connected Google Drive as ${connectResult.accountUsername || 'Google Account'}. You can now close this window.`
+      `Successfully connected Google Drive as ${connectResult.accountUsername || 'Google Account'}. Returning to ModelMesh...`
     );
   } catch (err: any) {
     console.error('[Google Drive OAuth] Callback handler exception:', err);

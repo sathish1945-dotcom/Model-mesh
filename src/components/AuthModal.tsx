@@ -4,21 +4,22 @@ import { readApiResponse } from '../lib/api-response.ts';
 import React, { useState } from 'react';
 import { X, Mail, Lock, User as UserIcon, AlertCircle, ArrowRight } from 'lucide-react';
 import type { User } from '../types/index.ts';
+import { ProviderAnimation } from './ProviderAnimation.tsx';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAuthSuccess: (user: User) => void;
-  googleClientId?: string | null;
+  initialTab?: 'login' | 'register';
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   onAuthSuccess,
-  googleClientId,
+  initialTab = 'register',
 }) => {
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState<'login' | 'register'>(initialTab);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -92,106 +93,68 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div role="dialog" aria-modal="true" aria-label="ModelMesh account" className="relative w-full max-w-md h-[100dvh] sm:h-auto sm:max-h-[90dvh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-none sm:rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800">
-        {/* Header */}
-        <div className="p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-              {tab === 'login' ? 'Sign in to ModelMesh' : 'Create an Account'}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      {/* Light glassmorphism container */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="ModelMesh authentication"
+        className="relative w-full max-w-md my-auto overflow-hidden 
+          bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md
+          rounded-2xl shadow-xl border border-zinc-200/80 dark:border-zinc-800/80
+          transition-all"
+      >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          aria-label="Close dialog"
+          className="absolute top-3 right-3 z-10 w-9 h-9 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* TOP-TO-BOTTOM VERTICAL FLOW */}
+        <div className="p-6 sm:p-7 space-y-4">
+          {/* 1. TOP: AI Provider Visual */}
+          <div className="pt-1">
+            <ProviderAnimation />
+          </div>
+
+          {/* 2. ModelMesh Branding & Headline */}
+          <div className="text-center space-y-1">
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              {tab === 'register' ? 'Join ModelMesh' : 'Welcome Back'}
             </h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Access intelligent free OpenRouter routing and chat history
+            {/* 3. Short explanation */}
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto leading-relaxed">
+              {tab === 'register'
+                ? 'Intelligent prompt routing across premier free models with automated failover and secure session history.'
+                : 'Sign in to access your models, chats, and automated multi-provider AI routing.'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            aria-label="Close account dialog"
-            className="min-w-11 min-h-11 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
 
-        {/* Tab switch */}
-        <div className="flex border-b border-zinc-200 dark:border-zinc-800 px-5 text-xs font-medium">
-          <button
-            onClick={() => {
-              setTab('login');
-              setError(null);
-            }}
-            className={`py-2.5 border-b-2 transition-colors mr-6 ${
-              tab === 'login'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => {
-              setTab('register');
-              setError(null);
-            }}
-            className={`py-2.5 border-b-2 transition-colors ${
-              tab === 'register'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-semibold'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Form Body */}
-        <div className="p-5 space-y-4">
+          {/* Error Banner */}
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex items-start gap-2 text-xs text-red-700 dark:text-red-400">
+            <div
+              role="alert"
+              className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 flex items-start gap-2 text-xs text-red-700 dark:text-red-400 animate-in fade-in"
+            >
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Google Sign In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-colors shadow-xs"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </button>
-
-          <div className="relative flex items-center justify-center">
-            <div className="border-t border-zinc-200 dark:border-zinc-800 w-full" />
-            <span className="bg-white dark:bg-zinc-900 px-3 text-[11px] text-zinc-400 uppercase tracking-wider absolute">
-              or with email
-            </span>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-3">
+          {/* 4. Registration / Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-3 pt-1">
             {tab === 'register' && (
               <div>
-                <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
-                  Your Name
+                <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
+                  Full Name
                 </label>
                 <div className="relative">
                   <UserIcon className="w-3.5 h-3.5 absolute left-3 top-3 text-zinc-400" />
@@ -200,15 +163,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Jane Doe"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-blue-500"
+                    placeholder="Sathish"
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-50/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+              <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
                 Email Address
               </label>
               <div className="relative">
@@ -218,14 +181,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-blue-500"
+                  placeholder="you@example.com"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-50/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
+              <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1">
                 Password
               </label>
               <div className="relative">
@@ -237,7 +200,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-blue-500"
+                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-zinc-50/80 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
                 />
               </div>
             </div>
@@ -245,12 +208,99 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+              className="w-full mt-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span>{loading ? 'Please wait...' : tab === 'login' ? 'Sign In' : 'Create Account'}</span>
+              <span>{loading ? 'Please wait...' : tab === 'register' ? 'Create Account' : 'Sign In'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
+
+          {/* 5. Google Sign-In Option */}
+          <div className="space-y-3 pt-1">
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-zinc-200 dark:border-zinc-800 w-full" />
+              <span className="bg-white dark:bg-zinc-900 px-3 text-[11px] text-zinc-400 uppercase tracking-wider absolute">
+                or
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-zinc-50/80 hover:bg-zinc-100 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all active:scale-[0.98] shadow-xs cursor-pointer"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Continue with Google</span>
+            </button>
+          </div>
+
+          {/* 6. Switch Tab / Login Link */}
+          <div className="text-center pt-2">
+            {tab === 'register' ? (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab('login');
+                    setError(null);
+                  }}
+                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  Sign in
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Don&apos;t have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab('register');
+                    setError(null);
+                  }}
+                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  Create one
+                </button>
+              </p>
+            )}
+          </div>
+
+          {/* 7. BOTTOM: Privacy & Terms and Legal Notice */}
+          <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/60 text-center space-y-1">
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 leading-normal">
+              By continuing, you agree to ModelMesh{' '}
+              <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
+                Terms
+              </a>{' '}
+              and{' '}
+              <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
+                Privacy Policy
+              </a>.
+            </p>
+            <p className="text-[9px] text-zinc-400/80 dark:text-zinc-500/80">
+              Provider marks referenced for descriptive routing compatibility only.
+            </p>
+          </div>
         </div>
       </div>
     </div>

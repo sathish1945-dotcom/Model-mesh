@@ -127,6 +127,14 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
     setIsConnectingGoogleDrive(true);
     setActionError(null);
     setActionSuccess(null);
+
+    const isMobile = typeof window !== 'undefined' && (window.innerWidth < 640 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    if (isMobile) {
+      // On mobile viewports (e.g. 390x844), direct redirection avoids popup blockers and lost openers
+      window.location.href = '/api/integrations/google-drive/connect';
+      return;
+    }
+
     const width = 500;
     const height = 650;
     const left = window.screenX + (window.outerWidth - width) / 2;
@@ -137,8 +145,8 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
       `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`
     );
     if (!popup) {
-      setIsConnectingGoogleDrive(false);
-      setActionError('Allow popups for ModelMesh and try connecting again.');
+      // Fall back to direct navigation if popup was blocked
+      window.location.href = '/api/integrations/google-drive/connect';
       return;
     }
 
@@ -252,8 +260,8 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200" role="presentation">
-      <div role="dialog" aria-modal="true" aria-label="Integrations" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-none sm:rounded-2xl w-full max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200" role="presentation">
+      <div role="dialog" aria-modal="true" aria-label="Integrations" className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 rounded-none sm:rounded-2xl w-full max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[90dvh] shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">

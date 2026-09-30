@@ -11,6 +11,24 @@
   .mobile-menu-item {
     @apply flex w-full min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-blue-500;
   }
+  .glass-surface {
+    @apply bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md border border-zinc-200/70 dark:border-zinc-800/70 shadow-xs;
+  }
+  .glass-card {
+    @apply bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs rounded-2xl transition-all duration-200;
+  }
+  .glass-card-interactive {
+    @apply bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200/80 dark:border-zinc-800/80 shadow-xs rounded-2xl transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99];
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom subtle scrollbar */
