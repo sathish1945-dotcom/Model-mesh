@@ -3,20 +3,21 @@ import { MODEL_REGISTRY, isFreeModel, refreshAvailableModels } from './model-reg
 
 export async function resolveModelRoute(
   category: TaskCategory,
-  userApiKey?: string
+  userApiKey?: string,
+  preferredModel?: string
 ): Promise<RouteResolution> {
   const config = MODEL_REGISTRY[category] || MODEL_REGISTRY.general;
   const availableModels = await refreshAvailableModels(userApiKey);
 
   // Explicit free models only. The free router randomly picks a provider and can
   // return a moderation model instead of an assistant, so never send chat to it.
-  const preferences = [config.primaryModel, config.secondaryModel,
+  const preferences = [preferredModel, config.primaryModel, config.secondaryModel,
     MODEL_REGISTRY.general.primaryModel, MODEL_REGISTRY.general.secondaryModel,
-    'qwen/qwen3.8-27b:free'];
-  const candidates = [...new Set(preferences)].filter((model) => isFreeModel(model) && model !== 'openrouter/free');
+    'qwen/qwen3.8-27b:free', ...availableModels];
+  const candidates = [...new Set(preferences)].filter((model): model is string => Boolean(model) && isFreeModel(model!) && model !== 'openrouter/free' && model !== 'openrouter/auto:free');
   const verified = candidates.filter((model) => availableModels.has(model));
   // A failed catalog lookup must not silently turn into random routing.
-  const cappedModels = (verified.length ? verified : candidates).slice(0, 3);
+  const cappedModels = (verified.length ? verified : candidates);
 
   const selectedModel = cappedModels[0];
   const fallbackModels = cappedModels.slice(1);
