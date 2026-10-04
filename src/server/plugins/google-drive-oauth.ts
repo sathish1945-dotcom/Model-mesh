@@ -104,7 +104,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>ModelMesh - Google Drive Authorization</title>
+          <title>hello - Google Drive Authorization</title>
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -167,7 +167,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
             </script>
             <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
               <button class="btn" onclick="window.close()">Close Window</button>
-              <a class="btn" href="${redirectTarget}">Return to ModelMesh</a>
+              <a class="btn" href="${redirectTarget}">Return to hello</a>
             </div>
           </div>
         </body>
@@ -191,7 +191,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
   if (!oauthState) {
     return renderPopupResult(
       false,
-      'Invalid or expired authorization session. Please try connecting again from ModelMesh.'
+      'Invalid or expired authorization session. Please try connecting again from hello.'
     );
   }
 
@@ -255,7 +255,7 @@ export async function handleGoogleDriveCallback(req: Request, res: Response) {
 
     return renderPopupResult(
       true,
-      `Successfully connected Google Drive as ${connectResult.accountUsername || 'Google Account'}. Returning to ModelMesh...`
+      `Successfully connected Google Drive as ${connectResult.accountUsername || 'Google Account'}. Returning to hello...`
     );
   } catch (err: any) {
     console.error('[Google Drive OAuth] Callback handler exception:', err);

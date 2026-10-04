@@ -9,10 +9,10 @@ import { ModelMeshLogo } from './ModelMeshLogo.tsx';
  *                    ▲
  *     ChatGPT (OpenAI)   Gemini (Google)
  *                    ▼
- *            ModelMesh Router
+ *            hello Router
  *
  * Entrance: Providers float in from depth, settle into position,
- * subtle connecting energy lines converge toward ModelMesh central router.
+ * subtle connecting energy lines converge toward hello central router.
  * Settle: Subtle cursor parallax on desktop, autonomous gentle drift on mobile.
  */
 export const ProviderAnimation: React.FC = () => {
@@ -53,7 +53,7 @@ export const ProviderAnimation: React.FC = () => {
       onMouseLeave={handleMouseLeave}
       className="relative w-full max-w-sm sm:max-w-md mx-auto py-2 px-1 select-none"
       style={{ perspective: '900px' }}
-      aria-label="AI Providers routed by ModelMesh"
+      aria-label="AI Providers routed by hello"
     >
       <div
         className="transition-transform duration-500 ease-out flex flex-col items-center"
@@ -173,7 +173,7 @@ export const ProviderAnimation: React.FC = () => {
                 </linearGradient>
               </defs>
 
-              {/* Claude (top center: 170, 24) -> ModelMesh (center bottom: 170, 126) */}
+              {/* Claude (top center: 170, 24) -> hello (center bottom: 170, 126) */}
               <path
                 d="M 170 34 L 170 120"
                 stroke="url(#claudeGrad)"
@@ -182,7 +182,7 @@ export const ProviderAnimation: React.FC = () => {
                 className="opacity-60"
               />
 
-              {/* ChatGPT (middle left: 70, 72) -> ModelMesh (center bottom: 170, 126) */}
+              {/* ChatGPT (middle left: 70, 72) -> hello (center bottom: 170, 126) */}
               <path
                 d="M 80 82 C 105 110, 140 124, 164 126"
                 stroke="url(#chatgptGrad)"
@@ -191,7 +191,7 @@ export const ProviderAnimation: React.FC = () => {
                 className="opacity-60"
               />
 
-              {/* Gemini (middle right: 270, 72) -> ModelMesh (center bottom: 170, 126) */}
+              {/* Gemini (middle right: 270, 72) -> hello (center bottom: 170, 126) */}
               <path
                 d="M 260 82 C 235 110, 200 124, 176 126"
                 stroke="url(#geminiGrad)"
@@ -202,7 +202,7 @@ export const ProviderAnimation: React.FC = () => {
             </svg>
           </div>
 
-          {/* 3. CENTRAL DESTINATION: ModelMesh Central Router */}
+          {/* 3. CENTRAL DESTINATION: hello Central Router */}
           <div
             className={`transition-all duration-700 delay-300 ease-out z-10 ${
               hasEntered
@@ -219,7 +219,7 @@ export const ProviderAnimation: React.FC = () => {
           >
             <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-600/10 dark:bg-indigo-500/20 border border-indigo-500/40 text-indigo-700 dark:text-indigo-300 shadow-sm backdrop-blur-md">
               <ModelMeshLogo className="w-4 h-4 shrink-0 shadow-xs" />
-              <span className="text-xs font-bold tracking-tight">ModelMesh Router</span>
+              <span className="text-xs font-bold tracking-tight">hello Router</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 font-semibold uppercase">
                 Intelligent Hub
               </span>

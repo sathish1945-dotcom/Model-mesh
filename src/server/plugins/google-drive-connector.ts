@@ -14,7 +14,7 @@ export const GOOGLE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const CAPABILITIES: ConnectorCapability[] = [
   {
     name: 'google-drive.listFiles',
-    description: 'List Google Drive files that ModelMesh has permission to access',
+    description: 'List Google Drive files that hello has permission to access',
     permissionLevel: 'READ',
   },
   {
@@ -49,7 +49,7 @@ const CAPABILITIES: ConnectorCapability[] = [
 export class GoogleDriveConnector implements Connector {
   readonly provider = 'google-drive' as const;
   readonly displayName = 'Google Drive';
-  readonly description = 'Access files you choose with ModelMesh.';
+  readonly description = 'Access files you choose with hello.';
   readonly icon = 'google-drive';
 
   listCapabilities(): ConnectorCapability[] {

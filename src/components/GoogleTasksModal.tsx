@@ -213,7 +213,7 @@ export const GoogleTasksModal: React.FC<GoogleTasksModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Sync, plan, and manage your to-dos directly in ModelMesh
+                Sync, plan, and manage your to-dos directly in hello
               </p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export const GoogleTasksModal: React.FC<GoogleTasksModalProps> = ({
                   Connect Google Tasks
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                  Authorize ModelMesh to view, add, and organize your tasks using the official Google Tasks API with permission.
+                  Authorize hello to view, add, and organize your tasks using the official Google Tasks API with permission.
                 </p>
               </div>
 

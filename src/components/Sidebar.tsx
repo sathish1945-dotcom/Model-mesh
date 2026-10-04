@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, MessageSquare, Trash2, X, Download, Blocks, Settings, LogOut, Sun, Moon, UserRound, Layers3 } from 'lucide-react';
 import { ModelMeshLogo } from './ModelMeshLogo.tsx';
 import type { Chat, User } from '../types/index.ts';
@@ -40,6 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   darkMode,
   user,
 }) => {
+  const [search, setSearch] = useState('');
+  const filteredChats = chats.filter(chat => (chat.title || '').toLowerCase().includes(search.toLowerCase()));
   const menuAction = (callback: () => void) => () => { callback(); if (window.innerWidth < 768) onClose(); };
   return (
     <>
@@ -54,6 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar container */}
       <aside
+        inert={!isOpen}
+        aria-hidden={!isOpen}
         className={`fixed md:static inset-y-0 left-0 z-50 w-[min(85vw,20rem)] md:w-72 bg-zinc-50 dark:bg-zinc-900/90 border-r border-zinc-200 dark:border-zinc-800 flex flex-col transition-transform duration-200 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-72'
         } ${!isOpen ? 'md:hidden' : ''}`}
@@ -61,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Top header */}
         <div className="p-3 border-b border-zinc-200/80 dark:border-zinc-800 flex items-center gap-2">
           <ModelMeshLogo className="w-7 h-7 shrink-0" />
-          <span className="font-semibold text-sm flex-1">ModelMesh</span>
+          <span className="font-semibold text-sm flex-1">hello👋</span>
           <button onClick={onClose} aria-label="Close menu" className="md:hidden min-w-11 min-h-11 flex items-center justify-center rounded-lg"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-3 flex items-center justify-between">
@@ -77,18 +81,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
+        <div className="px-3"><input aria-label="Search conversations" placeholder="Search conversations…" value={search} onChange={e => setSearch(e.target.value)} className="w-full min-h-11 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent px-3 text-sm" /></div>
         {/* Chat History List */}
         <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
           <div className="px-2 pb-1.5 text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
             Chat History
           </div>
 
-          {chats.length === 0 ? (
+          {filteredChats.length === 0 ? (
             <div className="text-center py-8 px-4 text-zinc-400 dark:text-zinc-500 text-xs">
-              No conversations yet. Start asking questions!
+              {search ? 'No matching conversations.' : 'No conversations yet. Start a new chat.'}
             </div>
           ) : (
-            chats.map((chat) => {
+            filteredChats.map((chat) => {
               const isActive = chat.id === activeChatId;
               return (
                 <div

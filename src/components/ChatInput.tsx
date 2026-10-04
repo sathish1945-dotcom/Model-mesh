@@ -1,7 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import { Send, Square, Plus, Sparkles } from 'lucide-react';
-import type { AiMode } from '../types/index.ts';
-import { displayModelName } from '../lib/model-name.ts';
 
 interface ChatInputProps {
   input: string;
@@ -11,8 +9,6 @@ interface ChatInputProps {
   onNewChat: () => void;
   isStreaming: boolean;
   disabled?: boolean;
-  aiMode: AiMode;
-  selectedModelId: string | null;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -23,8 +19,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onNewChat,
   isStreaming,
   disabled,
-  aiMode,
-  selectedModelId,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,26 +41,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   return (
-    <div className="px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 transition-colors">
+    <div className="hello-composer px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 transition-colors">
       <div className="max-w-3xl mx-auto space-y-2">
-        <div className="relative flex items-end gap-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 focus-within:border-blue-500 dark:focus-within:border-blue-500 rounded-2xl p-2 shadow-sm transition-colors">
+        <div className="hello-composer-box relative flex items-end gap-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 focus-within:border-blue-500 dark:focus-within:border-blue-500 rounded-2xl p-2 shadow-sm transition-colors">
           <textarea
             ref={textareaRef}
-            aria-label="Message ModelMesh"
+            aria-label="Message hello"
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            placeholder={
-              disabled
-                ? 'Please connect OpenRouter to start chatting...'
-                : selectedModelId
-                ? `Ask ${displayModelName(selectedModelId)} anything...`
-                : aiMode === 'auto'
-                ? 'Ask anything... (automatically routed to free model)'
-                : `Ask a ${aiMode} question...`
-            }
+            placeholder="Message hello…"
             className="flex-1 min-w-0 bg-transparent border-0 outline-hidden resize-none text-base sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 max-h-44 px-2 py-1.5 leading-relaxed"
           />
 
@@ -76,7 +62,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               type="button"
               onClick={onNewChat}
               className="hidden sm:flex min-w-10 min-h-10 items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-xl transition-colors"
-              title="Start a new chat"
+              aria-label="New chat" title="Start a new chat"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -87,7 +73,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 type="button"
                 onClick={onStop}
                 className="min-w-11 min-h-11 flex items-center justify-center bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs transition-transform active:scale-95"
-                title="Stop generation"
+                aria-label="Stop generation" title="Stop generation"
               >
                 <Square className="w-4 h-4 fill-white" />
               </button>
@@ -97,7 +83,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 onClick={onSend}
                 disabled={!input.trim() || disabled || isStreaming}
                 className="min-w-11 min-h-11 flex items-center justify-center bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white rounded-xl shadow-xs transition-transform active:scale-95"
-                title="Send message (Enter)"
+                aria-label="Send message" title="Send message"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -108,8 +94,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <div className="flex items-center justify-between text-[11px] text-zinc-400 dark:text-zinc-500 px-1">
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-3 h-3 text-blue-500" />
-            <span>Mode: <strong className="text-zinc-600 dark:text-zinc-400">{selectedModelId ? displayModelName(selectedModelId) : aiMode}</strong></span>
-            <span>• Only free models used</span>
+            <span>hello can make mistakes. Check important information.</span>
           </div>
           <div className="hidden sm:block">Enter to send · Shift+Enter for a new line</div>
         </div>

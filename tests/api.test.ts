@@ -32,7 +32,7 @@ after(async () => {
 });
 
 test('API config and missing routes return JSON', async () => {
-  assert.equal((await (await fetch(base + '/api/config')).json()).appName, 'ModelMesh');
+  assert.equal((await (await fetch(base + '/api/config')).json()).appName, 'hello');
   const missing = await fetch(base + '/api/missing');
   assert.equal(missing.status, 404);
   assert.equal((await missing.json()).error, 'API route not found');

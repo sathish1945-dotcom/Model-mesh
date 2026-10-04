@@ -104,7 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="ModelMesh Onboarding"
+        aria-label="hello Onboarding"
         className="relative w-full max-w-xl min-h-screen sm:min-h-0 sm:my-auto overflow-hidden
           bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl
           rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-zinc-200/80 dark:border-zinc-800/80
@@ -124,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Natural Vertical Flow:
             1. AI Provider 3D visual
-            2. ModelMesh branding
+            2. hello branding
             3. Headline
             4. Short explanation
             5. Registration/Login form fields
@@ -145,7 +145,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <span>Multi-Provider Intelligence</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
-              {tab === 'register' ? 'Get Started with ModelMesh' : 'Welcome Back to ModelMesh'}
+              {tab === 'register' ? 'Get Started with hello' : 'Welcome Back to hello'}
             </h1>
             <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
               {tab === 'register'
@@ -318,7 +318,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* 8. BOTTOM: Privacy & Terms and Legal Notice */}
           <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800/80 text-center space-y-1 max-w-md mx-auto">
             <p className="text-[11px] text-zinc-400 dark:text-zinc-500 leading-normal">
-              By continuing, you agree to ModelMesh{' '}
+              By continuing, you agree to hello{' '}
               <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-600 dark:hover:text-zinc-300">
                 Terms
               </a>{' '}

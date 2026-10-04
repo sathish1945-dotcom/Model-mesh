@@ -14,9 +14,8 @@ import {
   Compass,
   Blocks,
 } from 'lucide-react';
-import type { ChatMessage, TaskCategory } from '../types/index.ts';
+import type { ChatMessage } from '../types/index.ts';
 import { ActionProposalCard } from './ActionProposalCard.tsx';
-import { displayModelName } from '../lib/model-name.ts';
 
 interface ChatMessageItemProps {
   message: ChatMessage;
@@ -25,32 +24,6 @@ interface ChatMessageItemProps {
   isLastAssistantMessage?: boolean;
   onOpenIntegrations?: () => void;
 }
-
-const CATEGORY_META: Record<
-  TaskCategory,
-  { label: string; icon: React.ReactNode; colorClass: string }
-> = {
-  coding: {
-    label: 'Coding AI',
-    icon: <Code className="w-3 h-3 text-emerald-500" />,
-    colorClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60',
-  },
-  reasoning: {
-    label: 'Reasoning AI',
-    icon: <Brain className="w-3 h-3 text-purple-500" />,
-    colorClass: 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800/60',
-  },
-  finance: {
-    label: 'Finance AI',
-    icon: <TrendingUp className="w-3 h-3 text-amber-500" />,
-    colorClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/60',
-  },
-  general: {
-    label: 'General AI',
-    icon: <Compass className="w-3 h-3 text-blue-500" />,
-    colorClass: 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/60',
-  },
-};
 
 export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   message,
@@ -68,7 +41,6 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const categoryMeta = message.model_category ? CATEGORY_META[message.model_category] : null;
 
   return (
     <div
@@ -97,19 +69,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-              {isUser ? 'You' : 'ModelMesh'}
+              {isUser ? 'You' : 'hello👋'}
             </span>
-
-            {/* Model Category Badge */}
-            {!isUser && categoryMeta && (
-              <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${categoryMeta.colorClass}`}
-                title={message.model_id ? `Model: ${message.model_id}` : undefined}
-              >
-                {categoryMeta.icon}
-                <span className="truncate max-w-[min(58vw,20rem)]">{displayModelName(message.model_id) || categoryMeta.label}</span>
-              </span>
-            )}
 
             {/* Live Streaming Indicator */}
             {!isUser && isStreaming && (

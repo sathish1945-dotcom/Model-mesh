@@ -3,13 +3,12 @@ import { Navbar } from './components/Navbar.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { ChatMessageItem } from './components/ChatMessageItem.tsx';
 import { ChatInput } from './components/ChatInput.tsx';
-import { EmptyChatState } from './components/EmptyChatState.tsx';
+import { HomePage } from './components/HomePage.tsx';
 import { RoutingIndicator } from './components/RoutingIndicator.tsx';
 import { ProviderSettingsModal } from './components/ProviderSettingsModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { IntegrationsModal } from './components/IntegrationsModal.tsx';
 import { ModelsModal } from './components/ModelsModal.tsx';
-import { BrandIntroAnimation } from './components/BrandIntroAnimation.tsx';
 import { logOutGoogle } from './lib/firebase-auth.ts';
 import { formatChatToMarkdown, downloadMarkdownFile } from './lib/export-markdown.ts';
 import { apiRequest, parseApiError } from './lib/api.ts';
@@ -24,9 +23,7 @@ import type {
 
 export default function App() {
   // Theme state
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  const [darkMode, setDarkMode] = useState(true);
 
   // Auth & Provider state
   const [user, setUser] = useState<User | null>(null);
@@ -42,7 +39,7 @@ export default function App() {
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
   // UI & Drawer state
-  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isModelsOpen, setIsModelsOpen] = useState(false);
   const [isIntegrationsOpen, setIsIntegrationsOpen] = useState(false);
@@ -102,7 +99,7 @@ export default function App() {
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 768px)');
-    const syncSidebar = () => setIsSidebarOpen(media.matches);
+    const syncSidebar = () => { if (!media.matches) setIsSidebarOpen(false); };
     media.addEventListener('change', syncSidebar);
     return () => media.removeEventListener('change', syncSidebar);
   }, []);
@@ -281,7 +278,7 @@ export default function App() {
   const handleExportCurrentChat = () => {
     if (messages.length === 0) return;
     const currentChat = chats.find((c) => c.id === activeChatId);
-    const title = currentChat?.title || messages[0]?.content?.slice(0, 30) || 'ModelMesh Chat';
+    const title = currentChat?.title || messages[0]?.content?.slice(0, 30) || 'hello Chat';
     const markdown = formatChatToMarkdown(title, messages);
     const sanitizedFilename = title
       .toLowerCase()
@@ -299,7 +296,7 @@ export default function App() {
   const handleExportSpecificChat = async (chatId: string) => {
     try {
       let targetMessages = messages;
-      let targetTitle = chats.find((c) => c.id === chatId)?.title || 'ModelMesh Chat';
+      let targetTitle = chats.find((c) => c.id === chatId)?.title || 'hello Chat';
 
       if (chatId !== activeChatId) {
         const data = await apiRequest<{ messages: ChatMessage[] }>(`/api/chats/${chatId}`);
@@ -500,7 +497,7 @@ export default function App() {
                 });
               }
               setBannerAlert({
-                message: `Primary model unavailable. Switched seamlessly to free fallback model.`,
+                message: `The connection changed. hello is continuing your reply.`,
                 type: 'info',
               });
               setTimeout(() => setBannerAlert(null), 3000);
@@ -642,7 +639,7 @@ export default function App() {
   const isConnected = providerStatus?.connection_status === 'connected';
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors">
+    <div className="hello-app flex h-[100dvh] w-full overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans transition-colors">
       {/* Sidebar (History & Drawer) */}
       <Sidebar
         isOpen={isSidebarOpen}
@@ -668,20 +665,12 @@ export default function App() {
         {/* Top Navbar */}
         <Navbar
           user={user}
-          providerStatus={providerStatus}
-          aiMode={aiMode}
-          selectedModelId={selectedModelId}
-          onOpenModels={() => setIsModelsOpen(true)}
-          onSelectAiMode={(mode) => { setAiMode(mode); setSelectedModelId(null); }}
           onNewChat={handleNewChat}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenIntegrations={() => setIsIntegrationsOpen(true)}
           onExportMarkdown={handleExportCurrentChat}
           hasMessagesToExport={messages.length > 0}
           onOpenAuth={() => setIsAuthOpen(true)}
-          onLogout={handleLogout}
-          darkMode={darkMode}
-          onToggleDarkMode={() => setDarkMode(!darkMode)}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           isSidebarOpen={isSidebarOpen}
         />
@@ -708,15 +697,14 @@ export default function App() {
         )}
 
         {/* Chat Scroll Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" role="main">
+        <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${messages.length === 0 ? "bg-[#020f1b]" : ""}`} role="main">
           {messages.length === 0 ? (
-            <EmptyChatState
-              onSelectPrompt={(text) => {
-                setInput(text);
-                handleSendMessage(text);
-              }}
-              isConnected={isConnected}
-              onConnectOpenRouter={handleConnectOpenRouter}
+            <HomePage
+              conversations={chats}
+              onSelectConversation={loadChatMessages}
+              onNewChat={(prompt = '') => { handleNewChat(); setInput(prompt); requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>('textarea')?.focus()); }}
+              onOpenSetup={() => setIsIntegrationsOpen(true)}
+              onOpenHistory={() => setIsSidebarOpen(true)}
             />
           ) : (
             <div className="max-w-3xl mx-auto px-2 sm:px-4 py-4 space-y-1">
@@ -738,9 +726,6 @@ export default function App() {
               {/* Dynamic Routing / Model Indicator during generation */}
               <RoutingIndicator
                 status={routingStatus}
-                category={activeCategory}
-                modelDisplayName={activeModelId}
-                isFallback={isFallbackRoute}
               />
 
               <div ref={messagesEndRef} />
@@ -756,9 +741,7 @@ export default function App() {
           onStop={handleStopStreaming}
           onNewChat={handleNewChat}
           isStreaming={isStreaming}
-          disabled={!isConnected && !user}
-          aiMode={aiMode}
-          selectedModelId={selectedModelId}
+          disabled={false}
         />
       </div>
 
@@ -794,8 +777,7 @@ export default function App() {
         }}
       />
 
-      {/* Brand Intro Animation (played once on first page load / session) */}
-      <BrandIntroAnimation onComplete={() => {}} />
+
     </div>
   );
 }

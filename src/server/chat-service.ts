@@ -135,7 +135,7 @@ export async function handleChatStream(req: Request, res: Response) {
     role: m.role,
     content: m.content,
   }));
-  contextMessages.unshift({ role: 'system', content: 'You are ModelMesh, a helpful AI assistant. Answer the user directly. Do not claim to have completed actions in external services unless a tool result confirms completion. If a request needs an unavailable action, explain what you can and cannot do.' });
+  contextMessages.unshift({ role: 'system', content: 'You are hello, a helpful AI assistant. Answer the user directly. Do not claim to have completed actions in external services unless a tool result confirms completion. If a request needs an unavailable action, explain what you can and cannot do.' });
 
   // If live telemetry/inspection data was gathered, augment the prompt context
   if (toolResolution?.toolContextPrompt) {
@@ -181,8 +181,8 @@ export async function handleChatStream(req: Request, res: Response) {
           Authorization: `Bearer ${userApiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': appUrl,
-          'X-Title': 'ModelMesh',
-          'User-Agent': 'ModelMesh/1.0',
+          'X-Title': 'hello',
+          'User-Agent': 'hello/1.0',
         },
         body: JSON.stringify({
           model: currentModel,

@@ -486,7 +486,7 @@ export const IntegrationsModal: React.FC<IntegrationsModalProps> = ({
                     /* Google Drive OAuth Flow UI */
                     <div className="space-y-3">
                       <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                        Authorize ModelMesh to access files you create or choose with Google Drive. We strictly use the narrowest scope (<code className="text-blue-600 font-mono">drive.file</code>) to protect your account.
+                        Authorize hello to access files you create or choose with Google Drive. We strictly use the narrowest scope (<code className="text-blue-600 font-mono">drive.file</code>) to protect your account.
                       </p>
 
                       <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">

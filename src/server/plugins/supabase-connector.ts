@@ -71,7 +71,7 @@ export class SupabaseConnector implements Connector {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'ModelMesh-AI-Workspace/1.0',
+        'User-Agent': 'hello-AI-Workspace/1.0',
         ...(options.headers || {}),
       },
     });

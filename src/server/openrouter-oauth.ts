@@ -110,7 +110,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>ModelMesh - OpenRouter Connection</title>
+          <title>hello - OpenRouter Connection</title>
           <style>
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -173,7 +173,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
             </script>
             <div style="margin-top: 20px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
               <button class="btn" onclick="window.close()">Close Window</button>
-              <a class="btn" href="${redirectTarget}">Return to ModelMesh</a>
+              <a class="btn" href="${redirectTarget}">Return to hello</a>
             </div>
           </div>
         </body>
@@ -209,7 +209,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'ModelMesh/1.0',
+        'User-Agent': 'hello/1.0',
       },
       body: JSON.stringify(exchangeBody),
     });
@@ -239,7 +239,7 @@ export async function handleOpenRouterCallback(req: Request, res: Response) {
 
     return renderResponse(
       true,
-      'Your OpenRouter account has been connected securely. Returning to ModelMesh...'
+      'Your OpenRouter account has been connected securely. Returning to hello...'
     );
   } catch (err: any) {
     console.error('[OpenRouter OAuth] Error during key exchange or encryption:', err);

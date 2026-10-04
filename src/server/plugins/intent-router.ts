@@ -41,7 +41,7 @@ export async function routeToolIntent(prompt: string, userId: string): Promise<T
   if (mentionsGithub) {
     return {
       hasIntent: true,
-      summaryMessage: 'GitHub integration is coming soon in ModelMesh. Currently, Google Drive is active in Settings → Integrations.',
+      summaryMessage: 'GitHub integration is coming soon in hello. Currently, Google Drive is active in Settings → Integrations.',
     };
   }
 

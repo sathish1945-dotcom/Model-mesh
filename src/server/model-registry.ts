@@ -66,7 +66,7 @@ export async function refreshAvailableModels(apiKey?: string): Promise<Set<strin
 
   try {
     const headers: Record<string, string> = {
-      'User-Agent': 'ModelMesh/1.0',
+      'User-Agent': 'hello/1.0',
     };
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;

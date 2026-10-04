@@ -46,7 +46,7 @@ export const BrandIntroAnimation: React.FC<BrandIntroAnimationProps> = ({ onComp
     }
 
     // Sequence timeline:
-    // 0 - 1300ms: Nodes travel toward center and assemble into ModelMesh woven logo
+    // 0 - 1300ms: Nodes travel toward center and assemble into hello woven logo
     // 1300ms: Logo settled, light sweeps across, wordmark and subtitle reveal
     // 2100ms: Smooth fade-out begins
     // 2650ms: Complete and transition smoothly into application
@@ -91,7 +91,7 @@ export const BrandIntroAnimation: React.FC<BrandIntroAnimationProps> = ({ onComp
     <div
       onClick={handleSkip}
       role="status"
-      aria-label="ModelMesh Loading"
+      aria-label="hello Loading"
       className={`fixed inset-0 z-[100] flex flex-col items-center justify-center cursor-pointer select-none
         bg-zinc-950 text-white transition-opacity duration-500 ease-out
         ${stage === 'fading' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
@@ -147,7 +147,7 @@ export const BrandIntroAnimation: React.FC<BrandIntroAnimationProps> = ({ onComp
         >
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-extrabold tracking-tight text-white font-sans drop-shadow-md">
-              ModelMesh
+              hello
             </h1>
             <span className="px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
               AI Router

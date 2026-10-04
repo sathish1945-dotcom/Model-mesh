@@ -70,7 +70,7 @@ app.get('/api/health', asyncRoute(async (_req, res) => {
 
 app.get('/api/config', asyncRoute(async (req, res) => {
   res.json({
-    appName: 'ModelMesh',
+    appName: 'hello',
     appUrl: getAppUrl(req),
     hasGoogleClientId: Boolean(process.env.GOOGLE_CLIENT_ID),
     googleClientId: process.env.GOOGLE_CLIENT_ID || null,
@@ -340,13 +340,13 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[ModelMesh Server] Running at http://0.0.0.0:${PORT}`);
+    console.log(`[hello Server] Running at http://0.0.0.0:${PORT}`);
   });
 }
 
 if (!process.env.VERCEL && process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   startServer().catch((err) => {
-    console.error('[ModelMesh Server] Fatal startup error:', err);
+    console.error('[hello Server] Fatal startup error:', err);
     process.exitCode = 1;
   });
 }

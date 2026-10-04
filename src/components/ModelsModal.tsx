@@ -144,17 +144,17 @@ export function ModelsModal({
         {/* Usage & Quota Cards */}
         <div className="p-4 sm:p-5 space-y-3 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-950/40">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {/* ModelMesh Application Allowance */}
+            {/* hello Application Allowance */}
             <div className="p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 shadow-xs">
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                 <Shield className="w-3.5 h-3.5 text-blue-500" />
-                <span>ModelMesh application allowance</span>
+                <span>hello application allowance</span>
               </div>
               <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 mt-1">
                 50 requests · Standard tier allowance
               </p>
               <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
-                ModelMesh platform allowance for intelligent prompt routing
+                hello platform allowance for intelligent prompt routing
               </p>
             </div>
 

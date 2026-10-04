@@ -10,7 +10,7 @@ export function formatChatToMarkdown(
 ): string {
   const formattedDate = exportDate.toLocaleString();
   let markdown = `# ${title || 'Chat Conversation'}\n\n`;
-  markdown += `*Exported from ModelMesh on ${formattedDate}*\n\n`;
+  markdown += `*Exported from hello on ${formattedDate}*\n\n`;
   markdown += `---\n\n`;
 
   messages.forEach((msg, index) => {

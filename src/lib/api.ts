@@ -1,5 +1,5 @@
 /**
- * Shared API request and error handling utility for ModelMesh frontend.
+ * Shared API request and error handling utility for hello frontend.
  * Enforces:
  * 1. HTTP status checks
  * 2. Content-Type validation

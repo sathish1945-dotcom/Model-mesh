@@ -48,7 +48,7 @@ export const ModelMesh3DIntro: React.FC<ModelMesh3DIntroProps> = ({
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       container.appendChild(renderer.domElement);
 
-      // Node target positions that form the woven ModelMesh "M" shape in 3D
+      // Node target positions that form the woven hello "M" shape in 3D
       // Left pillar, left diagonal, central nexus, right diagonal, right pillar
       const targetPoints = [
         // Left pillar (bottom to top)
@@ -275,7 +275,7 @@ export const ModelMesh3DIntro: React.FC<ModelMesh3DIntroProps> = ({
         accentMat.dispose();
       };
     } catch (err) {
-      console.warn('[ModelMesh 3D Intro] WebGL context unavailable, using CSS fallback:', err);
+      console.warn('[hello 3D Intro] WebGL context unavailable, using CSS fallback:', err);
       setHasWebGLError(true);
     }
   }, [onComplete, reducedMotion]);

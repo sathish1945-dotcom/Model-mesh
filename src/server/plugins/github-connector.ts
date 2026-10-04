@@ -77,7 +77,7 @@ const CAPABILITIES: ConnectorCapability[] = [
 export class GitHubConnector implements Connector {
   readonly provider = 'github' as const;
   readonly displayName = 'GitHub';
-  readonly description = 'Inspect repositories, commits, issues, and code directly inside ModelMesh.';
+  readonly description = 'Inspect repositories, commits, issues, and code directly inside hello.';
   readonly icon = 'github';
 
   listCapabilities(): ConnectorCapability[] {
@@ -90,7 +90,7 @@ export class GitHubConnector implements Connector {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github+json',
-        'User-Agent': 'ModelMesh-AI-Workspace/1.0',
+        'User-Agent': 'hello-AI-Workspace/1.0',
         ...(options.headers || {}),
       },
     });
