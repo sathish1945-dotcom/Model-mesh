@@ -56,6 +56,8 @@ export function HomePage({
         Date.parse(a.updated_at || a.created_at),
     )
     .slice(0, 3);
+  const modeUpdateLabel = "Updating 30 Nov";
+  const modeUpdateTitle = "Planned update: 30 November 2026. Under development.";
   const features = [
     {
       label: "New Chat",
@@ -70,19 +72,13 @@ export function HomePage({
       label: "Friend Mode",
       Icon: Heart,
       color: "orange",
-      action: () =>
-        onNewChat(
-          "Let’s have a friendly conversation. Ask me how my day is going.",
-        ),
+      updatePending: true,
     },
     {
       label: "Teacher Mode",
       Icon: GraduationCap,
       color: "blue",
-      action: () =>
-        onNewChat(
-          "Help me learn step by step. First ask what subject I want to study.",
-        ),
+      updatePending: true,
     },
     { label: "Projects", Icon: Folder, color: "purple" },
     { label: "Integrations", Icon: Link, color: "cyan", action: onOpenSetup },
@@ -96,15 +92,14 @@ export function HomePage({
       detail: "Chat, ideas, entertainment",
       Icon: Heart,
       color: "pink",
-      prompt: "Let’s chat like friends. Ask me about my day.",
+      updatePending: true,
     },
     {
       name: "Teacher",
       detail: "Study help, explanations",
       Icon: GraduationCap,
       color: "blue",
-      prompt:
-        "Be my study assistant. Ask what I want to learn and explain it step by step.",
+      updatePending: true,
     },
     {
       name: "Business",
@@ -157,17 +152,17 @@ export function HomePage({
         </div>
       </section>
       <nav className="hello-features" aria-label="Quick actions">
-        {features.map(({ label, Icon, color, action }) => (
+        {features.map(({ label, Icon, color, action, updatePending }) => (
           <button
             key={label}
             className={`hello-tile tone-${color}`}
             onClick={action}
             disabled={!action}
-            title={!action ? `${label} — coming soon` : label}
+            title={updatePending ? modeUpdateTitle : !action ? `${label} — coming soon` : label}
           >
             <Icon aria-hidden="true" />
             <span>{label}</span>
-            {!action && <small>Coming soon</small>}
+            {!action && <small>{updatePending ? modeUpdateLabel : "Coming soon"}</small>}
           </button>
         ))}
       </nav>
@@ -223,15 +218,18 @@ export function HomePage({
           <span className="section-note">Choose a conversation style</span>
         </div>
         <div className="hello-roles">
-          {roles.map(({ name, detail, Icon, color, prompt }) => (
+          {roles.map(({ name, detail, Icon, color, prompt, updatePending }) => (
             <button
               key={name}
               className={`hello-role tone-${color}`}
-              onClick={() => onNewChat(prompt)}
+              onClick={updatePending ? undefined : () => onNewChat(prompt)}
+              disabled={updatePending}
+              title={updatePending ? modeUpdateTitle : name}
             >
               <Icon aria-hidden="true" />
               <strong>{name}</strong>
               <span>{detail}</span>
+              {updatePending && <small className="text-[10px] text-slate-300">{modeUpdateLabel}</small>}
             </button>
           ))}
         </div>
